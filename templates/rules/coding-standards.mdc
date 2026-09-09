@@ -1,0 +1,92 @@
+---
+description: Baseline coding standards for all repositories
+alwaysApply: true
+---
+
+# Coding Standards
+
+Baseline conventions for every file in this repository, regardless of stack.
+Archetype-specific rules in `.cursor/rules/` extend these.
+
+## General
+
+- Match the surrounding code: naming, structure, formatting, and idioms already in the file.
+- Prefer clarity over cleverness. Smaller, focused units beat large multi-purpose ones.
+- Don't add a dependency when the standard library or an existing utility already does the job.
+- Read before you write: look for an existing function, component, or pattern to reuse before creating a new one.
+
+## TypeScript / JavaScript
+
+- TypeScript `strict` mode. Avoid `any` — prefer `unknown` + narrowing; justify any exception with a comment.
+- Type the public surface of every module (exported functions, props, return types).
+- `const` by default; `let` only when reassigned; never `var`.
+- Prefer pure functions and immutable data; avoid shared mutable state.
+- Use `async/await` over raw promise chains, and always handle rejections.
+- No `console.log` in committed code — use the project's logger or remove it.
+
+## Naming
+
+- `camelCase` for variables/functions, `PascalCase` for types/classes/components, `UPPER_SNAKE` for constants.
+- Names describe intent, not type (`users`, not `userArray`).
+- Booleans read as predicates (`isLoading`, `hasError`, `canSubmit`).
+
+## Errors
+
+- Fail loudly at boundaries; never swallow errors silently.
+- Throw/return typed errors with actionable messages. Don't catch what you can't handle.
+
+## Tests
+
+- Every behavior change ships with a test. Test behavior, not implementation details.
+- Tests must be deterministic and isolated — no shared state, no ordering dependence, no real network.
+- Mock only out-of-process boundaries (APIs, databases, external services). Do not mock internal modules.
+
+## Security
+
+- Never commit secrets. Read config from environment / a config service.
+- Validate and sanitize external input at the boundary.
+- Don't read or log credential files (`.env`, `*.pem`, `*.key`, credentials, tokens).
+- Never commit decrypted `.env.secret` files. Use `scripts/crypt.js` (Ansible Vault) to encrypt/decrypt secrets locally.
+- Do not hardcode API keys, tokens, or passwords — even in test fixtures. Use environment variables or SSM Parameter Store references.
+
+## Monorepo shared library changes
+
+When modifying a shared library or package (anything consumed by multiple apps), check which apps depend on it and update their `force_update.txt` to trigger a pipeline rebuild:
+
+```bash
+date > apps/<app-name>/force_update.txt
+```
+
+- **Only force-update apps that have NO file changes in this commit.** If an app already has code changes alongside the lib change, its pipeline will trigger naturally — no `force_update.txt` needed.
+- Force-update is only for apps that consume the changed lib but have no modified files of their own in this commit.
+- Commit the `force_update.txt` changes together with the lib change in the same commit.
+- If unsure which apps are affected, search for imports of the changed package across `apps/`.
+
+## Commits
+
+- **Only commit when working in a git worktree.** If not in a worktree, leave changes uncommitted — the user will commit them.
+- **Commit format** — check the branch name for a ticket pattern (e.g. `CON-2000`, `OXP-2000`, `KO-1234`):
+  - If ticket found: `type: TICKET short message` (e.g. `feat: CON-2000 add cart page`)
+  - If no ticket in branch: `type: short message` (e.g. `fix: correct price display`)
+- **Keep messages under 10 words.** Be concise and specific.
+- **Types:** `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, `build`, `revert`.
+- **Before committing:** check if the repo has a Husky pre-commit hook or commitlint config. Run the commit through the hook to ensure it's valid. If the hook rejects, fix the format.
+- One logical change per commit; keep diffs reviewable.
+
+## Superpowers & Caveman integration
+
+When available, use these external skills to improve workflow quality. **If not installed, the kit works fully standalone** — use Cursor's built-in plan mode and the `/ko-*` commands directly.
+
+**Spec/plan file location override:** Save all specs and plans to `.cursor/specs/` — NOT `docs/superpowers/specs/` or `docs/superpowers/plans/`. This is a user preference that overrides the superpowers default paths.
+- Specs: `.cursor/specs/YYYY-MM-DD-<topic>-design.md`
+- Plans: `.cursor/specs/YYYY-MM-DD-<topic>-plan.md`
+
+- **`superpowers:brainstorming`** — invoke before creative/feature work to explore intent and requirements.
+- **`superpowers:writing-plans`** — invoke for non-trivial multi-step tasks before coding.
+- **`superpowers:executing-plans`** — invoke to execute plans with review checkpoints.
+- **`superpowers:subagent-driven-development`** — invoke to dispatch independent tasks to sub-agents in parallel.
+- **`superpowers:test-driven-development`** — invoke for red-green-refactor: write failing test → implement → refactor.
+- **`superpowers:systematic-debugging`** — invoke for bug investigation: hypothesis-driven, evidence before fixes.
+- **`superpowers:verification-before-completion`** — invoke before claiming work is done: run checks, confirm output.
+- **`superpowers:requesting-code-review`** — invoke to structure a thorough code review.
+- **`caveman`** — invoke for token-efficient compressed responses (~65% output reduction). Activate with `/caveman` or "talk like caveman". Technical accuracy preserved, only fluff removed. Off with "normal mode".

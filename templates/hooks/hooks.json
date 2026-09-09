@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeReadFile": [
+      { "command": "node .cursor/hooks/privacy-block.cjs" }
+    ],
+    "beforeShellExecution": [
+      { "command": "node .cursor/hooks/privacy-block.cjs" }
+    ],
+    "beforeMCPExecution": [
+      { "command": "node .cursor/hooks/privacy-block.cjs" }
+    ]
+  }
+}

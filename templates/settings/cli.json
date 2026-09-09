@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Shell(pnpm *)",
+      "Shell(npx nx *)",
+      "Shell(nest *)",
+      "Shell(npx playwright *)",
+      "Shell(npx bddgen *)",
+      "Shell(npx rover *)",
+      "Shell(npx plop *)",
+      "Shell(npx ts-node scripts/*)",
+      "Shell(node scripts/*)",
+      "Shell(git status)",
+      "Shell(git diff *)",
+      "Shell(git log *)"
+    ],
+    "deny": [
+      "Shell(rm -rf *)",
+      "Read(**/.env*)",
+      "Read(**/.env.secret*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ]
+  }
+}

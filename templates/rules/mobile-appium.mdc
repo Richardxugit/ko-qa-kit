@@ -1,0 +1,71 @@
+---
+description: Mobile Appium + Cucumber-JVM (Java) test conventions
+globs: src/test/java/**/*.java,src/test/resources/features/**/*.feature
+alwaysApply: false
+---
+
+# Mobile Appium + Cucumber-JVM Rules
+
+## Source of truth
+
+`AGENTS.md` and `.github/instructions/*.instructions.md` are this repo's authoritative, currently
+maintained contract for feature/step/page/service/constants/entity conventions. This rule
+summarizes the non-negotiables for quick reference — when in doubt, or when something here looks
+out of date, defer to those files, not this one.
+
+## Layering (respect the boundaries)
+
+- **Features** (`src/test/resources/features/**/*.feature`) — declarative Gherkin, business
+  language only. No taps/swipes/XPath/wait mechanics in scenario text.
+- **Steps** (`src/test/java/**/step/*Steps.java`) — glue and binding only. Delegate to
+  page/service methods; never touch locators, constants, or `WebElement`/Appium calls directly.
+- **Pages** (`src/test/java/**/pageobject/*Page.java`) — extend `AbstractPage`, annotated
+  `@PageObject`. UI interaction + state checks. Intent-based method names, not gesture-named ones.
+- **Services** (`src/test/java/**/serviceobject/*Service.java`) — `@Service` +
+  `@Scope(SCOPE_CUCUMBER_GLUE)`. Cross-page/business workflow orchestration.
+- **Constants** (`src/test/java/**/constant/*Constants.java`) — locator values only,
+  `public static final String`, private constructor. No methods beyond that.
+- **Entities/data** (`src/test/java/**/data/*.java`) — payload/query models only. Lombok `@Data`/
+  `@Setter`, `@SerializedName` when wire keys diverge from camelCase.
+
+Dependencies flow one way: `feature → step → service/page → constants` (+ `data` for API-touching
+flows). Keep the contract synchronized in the same change — a renamed page method or locator
+constant means the dependent step text/method updates land together, not in a follow-up.
+
+## Locator strategy
+
+- Priority order: **Accessibility ID → `_ANDROID_ID` (when stable) → XPath
+  (`_ANDROID_XPATH` / `_IOS_XPATH`, last resort)**.
+- Cross-platform elements keep Android/iOS constants as a named pair sharing a base token
+  (`CHECKOUT_BUTTON_ANDROID_XPATH` + `CHECKOUT_BUTTON_IOS_XPATH`).
+- Never invent a selector that isn't grounded in observed evidence (captured page source/XML,
+  screenshot, or BrowserStack MCP session state).
+
+## Waiting
+
+- **No fixed sleeps or hard waits** — no `Thread.sleep`, no hard-wait wrappers, anywhere.
+- Condition-based waits only, through existing `AbstractPage` helpers.
+
+## Portability
+
+- Keep test code and data AU/NZ and local/dev/nonprod/prod agnostic. Load data from
+  `src/test/resources/data/**` (or existing helpers/services) — never inline literals that assume
+  one market or environment.
+
+## Execution
+
+- BrowserStack App Automate is the execution target: `mvn clean test
+  "-Dcucumber.filter.tags=@<tag>" -Dspring.profiles.active=<env>,<platform>,<locale>
+  -Ddevice=<android|ios> -Dlocale=<AU|NZ> -Denvironment=<env>`.
+- Confirm exact flags/profiles in `AGENTS.md` before assuming these defaults — they vary per repo.
+
+## Tagging
+
+- `@quarantine` only for confirmed flakiness with rationale; `@bug` only for confirmed product
+  defects with a traceable reference. Remove tags once resolved — they are tracked debt, not a
+  permanent state.
+
+## Coexistence with existing config
+
+- This repo may already have its own `.cursor/rules/` or `.cursor/skills/`. Kit-installed files
+  use a `ko-` prefix to avoid conflicts. Repo-specific rules take precedence over kit defaults.

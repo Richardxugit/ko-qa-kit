@@ -1,0 +1,136 @@
+---
+name: playwright-bdd
+description: Wire Gherkin BDD to Playwright with singleton page objects and the pwHelper pattern. Use when writing step definitions, page objects, or global state, configuring RUN_MODE/auth/trace, working with WireMock, or debugging e2e tests in a playwright-bdd repo.
+---
+
+# Playwright BDD Wiring
+
+How `.feature` files become running Playwright tests in this test family, and the conventions every generated file must follow. Repo specifics (exact script names, env flags) live in `AGENTS.md` — the shapes below are the family defaults.
+
+## Pipeline
+
+```
+.feature files → bddgen → .features-gen/ (auto-generated) → Playwright test runner
+```
+
+`playwright.config.ts` wires it with `defineBddConfig`:
+
+```ts
+import { defineConfig } from '@playwright/test';
+import { defineBddConfig } from 'playwright-bdd';
+
+const testDir = defineBddConfig({
+  features: `src/features/${process.env.RUN_MODE ?? 'e2e'}/**/*.feature`,
+  steps: ['src/steps/**/*.ts', 'src/hooks/**/*.ts'],
+});
+
+export default defineConfig({ testDir, /* trace/reporter per repo config */ });
+```
+
+- `.features-gen/` is generated output. **NEVER edit files in it.**
+- `RUN_MODE` selects the test family: `e2e` (real environments, default), `ui` (WireMock-mocked, deterministic), `functional`, `dynamoDB`. The feature file's folder must match its family.
+- Run via the repo runner (`./scripts/run-tests.sh -e <env> -l <locale> -t <tags>`), or `npx bddgen && npx playwright test --grep <pattern>` for a scoped run.
+
+## Page objects — singleton style (this family's default)
+
+One class per screen. Selectors are **strings** in the `elements` object; actions wrap them into Locators for `pwHelper`; the class is exported as a **singleton** and registered in the `src/pages/index.ts` barrel.
+
+```ts
+import { BasePage } from './BasePage';
+import { pwHelper } from '../utils/pwHelper';
+
+class CheckoutPage extends BasePage {
+  elements = {
+    submitButton: '[data-testid="checkout-submit"]',
+    totalPrice: '[data-testid="total-price"]',
+  };
+
+  async submitOrder() {
+    // pwHelper methods take a Locator — wrap the element string at the call site.
+    await pwHelper.click(this.locator(this.elements.submitButton));
+  }
+}
+export const checkoutPage = new CheckoutPage(); // register in src/pages/index.ts
+```
+
+- A flow's first step opens the page: `await checkoutPage.open(page)` — `BasePage.open` hands the `page` to the `pwHelper` singleton (`pwHelper.setPage(page)`); every later call rides that page. <!-- /ko-onboard: confirm the exact open/locator helper names -->
+- **No assertions inside page-object actions.** Verification lives in `Then` steps.
+- One selector per element, `data-testid` first. Never fallback chains, never XPath.
+- Accessibility checks go through the helper: `pwHelper.analyseAccessibilityResults(...)`.
+
+## Step definitions
+
+Regex-only, created via `createBdd()`; steps call the page-object singletons directly:
+
+```ts
+import { createBdd } from 'playwright-bdd';
+import { checkoutPage } from '../pages';
+const { Given, When, Then } = createBdd();
+
+Given(/^I am on the checkout page$/, async ({ page }) => {
+  await checkoutPage.open(page);
+});
+
+When(/^I submit my order$/, async () => {
+  await checkoutPage.submitOrder();
+});
+```
+
+- **NEVER Cucumber expressions** (`{word}`, `{string}`) — regex `/^…$/` only.
+- Destructure `{ page }` only where the step opens a page; otherwise the singletons already hold it.
+- One assertion-of-intent per `Then` step, web-first (`await expect(locator).toBeVisible()`). Never `waitForTimeout`.
+
+## Cross-step state — typed `global.*`
+
+Share state between steps via `global` properties declared on the global type (e.g. `global.d.ts`), never module-level variables:
+
+```ts
+declare global {
+  // eslint-disable-next-line no-var
+  var orderId: string | undefined;
+}
+```
+
+Set in a step (`global.orderId = …`), read in later steps, and **clean up in `After` hooks**.
+
+## Auth — this family does not use storageState
+
+Tests create their accounts by **registering through the live UI** (including TOTP MFA where the flow requires it) and reuse sessions by **injecting cookies via the cookie helper**. There is no `.auth/` directory and no saved-session `storageState` setup in this family.
+
+- Credentials/secrets are **vault-encrypted** and the privacy hook blocks reading them. **Never read `.env` files** — use the helpers that consume decrypted config at runtime.
+- Need an authenticated page for exploration? Drive the registration/login flow itself (or a codegen session where you log in by hand) — see `dom-sight`.
+
+## WireMock (ui/ family)
+
+- Mappings in `src/mock/mappings/`, response bodies in `src/mock/__files/`.
+- `ui/` features run against the mocked backend (deterministic, fast); `e2e/` features hit real environments — never mix the two in one feature.
+- WireMock runs in Docker via the test runner script.
+
+## Reporting
+
+Allure (plus Cucumber HTML/JSON) is generated by the runner script. Attach traces on failure; reference the Allure run in reports when available.
+
+## Step Registry
+
+**NEVER grep for step definitions** — search the registry (aliases in `AGENTS.md`):
+
+```bash
+pnpm registry:search --step "add to cart"
+pnpm registry:search --page "checkout"
+pnpm registry:search --element "submit button"
+```
+
+Regenerate after any step/page/feature change: `pnpm registry:gen`. Full protocol in the `step-registry` skill.
+
+## Debugging
+
+- `npx playwright test --grep "<scenario>" --trace on`, then `npx playwright show-trace <trace.zip>` (DOM snapshots, network, console).
+- `npx playwright test --ui` — time-travel through actions.
+- Flakes: `--repeat-each 10` (isolate with `--workers 1`, then parallel) to establish a rate before and after a fix.
+- Live-DOM questions → `dom-sight` skill (MCP snapshot / codegen / one-off probes). Never guess selectors.
+
+See `references/page-object.md` for a complete vertical slice (feature → steps → page object → global state → hooks).
+
+## Greenfield appendix — DI-fixture style
+
+Only for a **brand-new** repo that has no singleton convention: playwright-bdd also supports exposing page objects as fixtures (`test.extend<…>` + `createBdd(test)`), letting steps receive them by destructuring. Do **not** introduce this style into a repo that already uses singletons — consistency beats preference.
