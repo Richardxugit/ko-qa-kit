@@ -44,10 +44,9 @@ If a required input is missing, ask for only the minimum needed.
 
 ## Locator fixes specifically
 
-- Never invent a selector that isn't grounded in observed evidence (BrowserStack page source/XML, accessibility snapshot, or screenshot).
-- Fix priority order: Accessibility ID → `_ANDROID_ID` (when a stable resource-id is observed) → XPath (`_ANDROID_XPATH` / `_IOS_XPATH`) only as a last resort.
-- Update `*Constants.java` directly — there's no generated selector-override file in this stack, so the constant *is* the fix. Keep Android/iOS pairs on the same base token name.
-- One targeted constant/locator update per observed drift; don't touch locators you have no evidence are broken.
+Follow the `mobile-browserstack-triage` skill's "Locator fixes" section — evidence-grounded
+selectors only, priority order, `*Constants.java` as the fix site, one targeted update per
+observed drift.
 
 ## Output format
 
