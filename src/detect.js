@@ -2,38 +2,117 @@
 import fs from 'fs-extra';
 import path from 'path';
 
+// Priority order — also the order rules/AGENTS.md/mcp variants resolve in when
+// a repo matches multiple archetypes (e.g. web e2e + mobile suites in one repo).
 export const ARCHETYPES = ['mobile-appium', 'e2e-playwright'];
 
+/**
+ * Detect ALL QA archetypes a repo matches, with the evidence for each.
+ * A repo can legitimately be both (web e2e suite + mobile suite).
+ *
+ * @returns {Promise<{ archetype: string, reasons: string[] }[]>}
+ */
+export async function detectArchetypes(projectDir) {
+  const deps = await readWorkspaceDeps(projectDir);
+  const found = [];
+  const mobile = await mobileAppiumReasons(projectDir);
+  if (mobile) found.push({ archetype: 'mobile-appium', reasons: mobile });
+  const e2e = await e2ePlaywrightReasons(projectDir, deps);
+  if (e2e) found.push({ archetype: 'e2e-playwright', reasons: e2e });
+  return found;
+}
+
+/**
+ * @returns {Promise<string|null>} The highest-priority matching archetype, or null.
+ */
 export async function detectArchetype(projectDir) {
-  if (await isMobileAppium(projectDir)) return 'mobile-appium';
-  const pkg = await readPackageJson(projectDir);
-  const deps = pkg ? { ...pkg.dependencies, ...pkg.devDependencies } : {};
-  if (await isE2ePlaywright(projectDir, deps)) return 'e2e-playwright';
+  const found = await detectArchetypes(projectDir);
+  return found.length > 0 ? found[0].archetype : null;
+}
+
+async function mobileAppiumReasons(dir) {
+  // pom.xml can live at the root or one level down (apps/mobile-tests/, ...)
+  const pomPaths = [path.join(dir, 'pom.xml')];
+  for (const sub of [...WORKSPACE_DIRS, ...QA_HINT_DIRS]) {
+    const subDir = path.join(dir, sub);
+    if (!await fs.pathExists(subDir)) continue;
+    let entries = [];
+    try {
+      entries = await fs.readdir(subDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) pomPaths.push(path.join(subDir, entry.name, 'pom.xml'));
+    }
+  }
+  for (const hint of QA_HINT_DIRS) {
+    pomPaths.push(path.join(dir, hint, 'pom.xml'));
+  }
+  for (const pomPath of pomPaths) {
+    let pom;
+    try {
+      pom = await fs.readFile(pomPath, 'utf-8');
+    } catch {
+      continue;
+    }
+    const hasAppium = pom.includes('<artifactId>java-client</artifactId>');
+    const cucumber = ['cucumber-java', 'cucumber-junit-platform-engine', 'cucumber-junit']
+      .find(a => pom.includes(`<artifactId>${a}</artifactId>`));
+    if (hasAppium && cucumber) {
+      const rel = path.relative(dir, pomPath);
+      return [`pom.xml (${rel}): appium java-client + ${cucumber}`];
+    }
+  }
   return null;
 }
 
-async function isMobileAppium(dir) {
-  const pomPath = path.join(dir, 'pom.xml');
-  if (!await fs.pathExists(pomPath)) return false;
-  let pom;
-  try {
-    pom = await fs.readFile(pomPath, 'utf-8');
-  } catch {
-    return false;
+async function e2ePlaywrightReasons(dir, deps) {
+  const pw = ['@playwright/test', 'playwright'].find(d => d in deps);
+  if (!pw) return null;
+  const reasons = [`${pw} dependency`];
+  const bdd = ['playwright-bdd', '@cucumber/cucumber'].find(d => d in deps);
+  if (bdd) {
+    reasons.push(`${bdd} dependency`);
+    return reasons;
   }
-  const hasAppium = pom.includes('<artifactId>java-client</artifactId>');
-  const hasCucumberJvm = pom.includes('<artifactId>cucumber-java</artifactId>')
-    || pom.includes('<artifactId>cucumber-junit-platform-engine</artifactId>')
-    || pom.includes('<artifactId>cucumber-junit</artifactId>');
-  return hasAppium && hasCucumberJvm;
+  if (await hasFeatureFiles(dir)) {
+    reasons.push('**/*.feature files');
+    return reasons;
+  }
+  return null; // playwright alone (no BDD) is not this archetype
 }
 
-async function isE2ePlaywright(dir, deps) {
-  const hasPlaywright = '@playwright/test' in deps || 'playwright' in deps;
-  if (!hasPlaywright) return false;
-  const hasBdd = 'playwright-bdd' in deps || '@cucumber/cucumber' in deps;
-  if (hasBdd) return true;
-  return await hasFeatureFiles(dir);
+// Monorepos keep test-suite deps in sub-package package.json files
+// (apps/e2e/, e2e/, ...) — merge deps from the root and one level of
+// common workspace dirs so signals are not missed.
+const WORKSPACE_DIRS = ['apps', 'packages', 'libs', 'services'];
+const QA_HINT_DIRS = ['e2e', 'tests', 'test', 'mobile-tests', 'ui-tests'];
+
+async function readWorkspaceDeps(rootDir) {
+  const deps = {};
+  const merge = (pkg) => {
+    if (pkg) Object.assign(deps, pkg.dependencies ?? {}, pkg.devDependencies ?? {});
+  };
+  merge(await readPackageJson(rootDir));
+  for (const hint of QA_HINT_DIRS) {
+    merge(await readPackageJson(path.join(rootDir, hint)));
+  }
+  for (const sub of WORKSPACE_DIRS) {
+    const dir = path.join(rootDir, sub);
+    if (!await fs.pathExists(dir)) continue;
+    let entries = [];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      merge(await readPackageJson(path.join(dir, entry.name)));
+    }
+  }
+  return deps;
 }
 
 async function readPackageJson(dir) {

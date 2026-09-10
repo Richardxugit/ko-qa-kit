@@ -90,3 +90,24 @@ When available, use these external skills to improve workflow quality. **If not 
 - **`superpowers:verification-before-completion`** — invoke before claiming work is done: run checks, confirm output.
 - **`superpowers:requesting-code-review`** — invoke to structure a thorough code review.
 - **`caveman`** — invoke for token-efficient compressed responses (~65% output reduction). Activate with `/caveman` or "talk like caveman". Technical accuracy preserved, only fluff removed. Off with "normal mode".
+
+## Specs and docs (style)
+
+- Plain English, short sentences. No filler ("it is important to note", "in order to", "leverage") — say it once, say it plainly.
+- Prefer structure over prose: tables for options and comparisons, bullet lists for requirements, **Mermaid diagrams** for flows, sequences, and state (```mermaid blocks render in Cursor and GitHub). One diagram replaces three paragraphs.
+- A spec answers three questions fast: what problem (3 lines max), what we decided, how we verify. Everything else is supporting detail — appendix or cut.
+- Every requirement must be testable: acceptance criteria are observable behaviors, not aspirations.
+
+## Simplicity (hard rules)
+
+- Implement only what the current requirement explicitly asks for. No speculative features, no "while we're here" refactors (YAGNI).
+- Defensive code is allowed ONLY for failure modes that have actually been observed (a bug report, a log, a failing test). Do not write guards for theoretical edge cases.
+- If an error state can be resolved by the user retrying/refreshing, do NOT build automatic recovery logic. Surface the error and ask first.
+- Every line in a diff must answer: "which test or requirement breaks if I delete this?" If the answer is "none", delete it.
+- When proposing a solution, present TWO options — the minimal fix and the thorough fix, with the cost/risk of each — and let the user choose. Do not default to the thorough one.
+
+## Bug fixes (hard rules)
+
+- NO FIX WITHOUT ROOT CAUSE. Before editing code for a bug: reproduce it, trace the data flow to where the bad value originates, and state the root cause in one sentence. Symptom-suppressing patches are rejected.
+- Invoke `superpowers:systematic-debugging` when available; if not installed, follow its phases inline: investigate → isolate → fix → verify.
+- If THREE consecutive fix attempts fail, STOP and report — that signals an architectural problem, not a patching opportunity.
