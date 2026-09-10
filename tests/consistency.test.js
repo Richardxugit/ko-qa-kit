@@ -118,7 +118,7 @@ describe('anti-overengineering rules', () => {
 describe('cross-kit reference lint', () => {
   // Commands/rules referenced in templates but shipped by OTHER kits.
   // Each must be guarded in the text ("if installed", "ko-product-kit", ...).
-  const EXTERNAL_COMMANDS = new Set(['ko-onboard']); // ko-dev-kit
+  const EXTERNAL_COMMANDS = new Set(); // this kit references no other kit's commands
   const EXTERNAL_RULES = new Set();
 
   const templateFiles = fs.readdirSync(path.join(templateDir, 'commands'))
@@ -165,7 +165,6 @@ describe('cross-kit reference lint', () => {
     // same failure mode as the ko-onboard → ko-knowledge-gen bug.
     const GUARD = /if (it is )?installed|when installed|manual[- ]tier|install command|not installed|not this kit/i;
     for (const file of templateFiles) {
-      if (file.endsWith(`${path.sep}ko-onboard.md`)) continue; // onboard carries the canonical guarded wording
       const lines = fs.readFileSync(file, 'utf-8').split('\n');
       lines.forEach((line, i) => {
         for (const cmd of MANUAL_INSTALL_COMMANDS) {
@@ -185,7 +184,6 @@ describe('cross-kit reference lint', () => {
       const fileLevelGuard = GUARD.test(content); // file declares conditionality once (e.g. format spec of an external pipeline)
       const lines = content.split('\n');
       lines.forEach((line, i) => {
-        if (/<!--\s*(run\s+)?\/?ko-onboard:/.test(line)) return; // ko-onboard placeholder markers, not references
         for (const ext of [...EXTERNAL_COMMANDS]) {
           const re = new RegExp(`(?<![\\w/@-])/${ext}(?![a-z0-9-])`);
           if (!re.test(line)) continue;

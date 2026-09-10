@@ -20,8 +20,8 @@ share the same scaffolding engine architecture and can coexist in one repo (sepa
 A repo can match **both** archetypes (e.g. web e2e suite + mobile suite) — `init` installs the
 union of their resources. Detection scans workspace sub-packages (`apps/*`, `packages/*`, `e2e/`,
 `mobile-tests/`, …) so suites living inside a monorepo are found. Every detection prints its
-evidence. For multi-archetype repos, `AGENTS.md` is written as a minimal skeleton — run
-`/ko-onboard` (ko-dev-kit, if installed) to generate real content for every stack.
+evidence. For multi-archetype repos, `AGENTS.md` is written as a minimal skeleton — fill in the
+real structure and commands for each stack by hand.
 
 ## Install
 

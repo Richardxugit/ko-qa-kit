@@ -110,7 +110,7 @@ export async function scaffoldProject(projectDir, archetype, templateDir, resour
   } else if (targets.length > 1) {
     // Multi-archetype: no single template can describe the repo, and pre-filled
     // archetype content would be wrong. Write a minimal skeleton instead —
-    // /ko-onboard explores the real repo and generates the actual AGENTS.md.
+    // the user fills in the real structure/stack/commands per stack.
     const dest = path.join(projectDir, 'AGENTS.md');
     if (!await fs.pathExists(dest)) {
       await fs.writeFile(dest, multiArchetypeContext(targets));
@@ -386,8 +386,8 @@ read all of them before editing:
 ${ruleRefs}
 - \`.cursor/rules/coding-standards.mdc\` (always applied)
 
-<!-- run /ko-onboard — it explores the real repo and replaces this skeleton with the
-actual structure, stack, commands, and conventions for every stack present -->
+<!-- TODO(repo): replace this skeleton with the actual structure, stack, commands,
+and conventions for every stack present -->
 `;
 }
 

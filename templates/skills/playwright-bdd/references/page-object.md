@@ -48,7 +48,7 @@ class PlpPage extends BasePage {
 export const plpPage = new PlpPage();
 ```
 
-- Selectors are **strings** on `elements`; methods wrap them into Locators (`this.locator(...)` from `BasePage`) before handing them to `pwHelper`. <!-- /ko-onboard: confirm the exact wrap helper name -->
+- Selectors are **strings** on `elements`; methods wrap them into Locators (`this.locator(...)` from `BasePage`) before handing them to `pwHelper`. <!-- TODO(repo): confirm the exact wrap helper name -->
 - One selector per element, `data-testid` first. No assertions in actions.
 
 ## Barrel — `src/pages/index.ts`

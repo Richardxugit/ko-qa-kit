@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import { scaffoldProject, pruneProject, MANIFEST_REL_PATH } from '../src/scaffold.js';
-import { readManifest, hashFile } from '../src/scaffold-core/manifest.js';
+import { readManifest, writeManifest, hashFile } from '../src/scaffold-core/manifest.js';
 
 const templateDir = path.resolve('templates');
 
@@ -28,8 +28,9 @@ describe('scaffoldProject', () => {
     expect(await fs.pathExists(path.join(tmpDir, '.cursor', 'rules', 'coding-standards.mdc'))).toBe(true);
     expect(await fs.pathExists(path.join(tmpDir, '.cursor', 'rules', 'e2e-playwright.mdc'))).toBe(true);
     expect(await fs.pathExists(path.join(tmpDir, '.cursor', 'rules', 'mobile-appium.mdc'))).toBe(true);
-    const manifest = await readManifest(tmpDir, MANIFEST_REL_PATH);
-    expect(manifest.archetypes).toEqual(['mobile-appium', 'e2e-playwright']);
+    // manifest writing is init's job — assert the owned set instead
+    expect(result.owned).toContain('.cursor/rules/mobile-appium.mdc');
+    expect(result.owned).toContain('.cursor/rules/e2e-playwright.mdc');
     expect(result.owned.length).toBeGreaterThan(0);
   });
 
@@ -50,14 +51,14 @@ describe('scaffoldProject', () => {
   });
 
   it('overwrites an unmodified kit rule when the kit ships a new version', async () => {
-    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const first = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const manifest = await writeManifest(tmpDir, MANIFEST_REL_PATH, { kitVersion: '0.0.0', archetypes: ['e2e-playwright'], files: first.owned });
     const rulePath = path.join(tmpDir, '.cursor', 'rules', 'e2e-playwright.mdc');
     const templatePath = path.join(templateDir, 'rules', 'e2e-playwright.mdc');
     const original = await fs.readFile(templatePath, 'utf-8');
     try {
-      await fs.writeFile(templatePath, original + '\n<!-- kit v2 -->
-');
-      await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+      await fs.writeFile(templatePath, original + '\n<!-- kit v2 -->\n');
+      await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir, { manifest });
       // file matched the manifest (user never edited) → kit upgrade lands in place
       expect(await fs.readFile(rulePath, 'utf-8')).toContain('kit v2');
       expect(await fs.pathExists(`${rulePath}.kit-update`)).toBe(false);
@@ -67,13 +68,13 @@ describe('scaffoldProject', () => {
   });
 
   it('preserves a user-edited rule, writes kit version as .kit-update', async () => {
-    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const first = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const manifest = await writeManifest(tmpDir, MANIFEST_REL_PATH, { kitVersion: '0.0.0', archetypes: ['e2e-playwright'], files: first.owned });
     const rulePath = path.join(tmpDir, '.cursor', 'rules', 'e2e-playwright.mdc');
-    const manifest = await readManifest(tmpDir, MANIFEST_REL_PATH);
     const entry = manifest.files.find(f => f.path === '.cursor/rules/e2e-playwright.mdc');
     expect(entry.sha256).toBe(await hashFile(rulePath)); // sanity: manifest hash matches
     await fs.writeFile(rulePath, 'my custom edits\n');
-    const result = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const result = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir, { manifest });
     expect(await fs.readFile(rulePath, 'utf-8')).toBe('my custom edits\n');
     expect(await fs.pathExists(`${rulePath}.kit-update`)).toBe(true);
     expect(result.mergeNeeded).toContain('.cursor/rules/e2e-playwright.mdc');
