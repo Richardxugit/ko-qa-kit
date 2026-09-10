@@ -57,11 +57,29 @@ shell when a Node version manager (fnm/nvm/volta) is in play:
   "looks missing" symptom, different cause, different fix (install under the default version, or
   point the default at the version that already has it).
 
-## 4. Genuinely missing
+## 4. Genuinely missing — guided bootstrap
 
-**Stop and ask**: name each piece that isn't installed or configured, point the user at the repo's
-local-emulator setup docs, and ask whether to install first or fall back to BrowserStack for this
-run. `--local` was an explicit request — don't silently substitute BrowserStack without asking.
+**Stop and ask first.** Name each missing piece, then offer the bootstrap checklist below. Never
+run installs silently — every step requires explicit user approval, and the fallback to
+BrowserStack is always an acceptable answer.
+
+Minimal local toolchain (macOS, Homebrew):
+
+| Missing | Install step |
+|---|---|
+| Everything | `brew install --cask android-commandlinetools` (SDK + `sdkmanager` + `avdmanager`) |
+| adb / platform-tools | `sdkmanager "platform-tools"` |
+| Emulator | `sdkmanager "emulator"` |
+| System image | `sdkmanager "system-images;android-34;google_apis;arm64-v8a"` (Apple Silicon; use `x86_64` on Intel) |
+| AVD | `avdmanager create avd -n ko_local -k "system-images;android-34;google_apis;arm64-v8a"` |
+| Appium server | `npm install -g appium` + `appium driver install uiautomator2` |
+| APK | ask the user to drop the build into the repo's local-app folder |
+
+After installs: accept licenses once (`sdkmanager --licenses`), then re-run the §2 probe to
+confirm green before running any test.
+
+When in doubt about API level / ABI, read the repo's docs or ask the user — do not guess a system
+image the app doesn't support.
 
 ## 5. Local evidence gathering (for locator discovery / debug)
 
