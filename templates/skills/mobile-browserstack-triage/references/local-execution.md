@@ -1,25 +1,46 @@
-# Local Emulator Execution — Preflight
+# Local Android Execution — APK + Emulator
 
 Shared by `/ko-mobile-test --local` and `/ko-mobile-heal --local`. The default execution target is
-BrowserStack; `--local` means verify against a local Android emulator. Follow this procedure
-exactly — never attempt a local run on the hope it'll work.
+BrowserStack; `--local` runs against a local Android emulator with a user-supplied APK. Follow
+this procedure exactly — never attempt a local run on the hope it'll work.
+
+## The two execution paths
+
+| | BrowserStack (default) | Local (`--local`) |
+|---|---|---|
+| App binary | repo's BrowserStack upload pipeline (`bs://` id) | APK dropped at the repo's local-app path (see AGENTS.md) |
+| Evidence for new locators | BrowserStack MCP session / App Live capture | emulator + Appium Inspector, or `adb shell uiautomator dump` |
+| Debug logs | BrowserStack MCP (device/network/session logs, video) | `adb logcat`, local screenshots, Appium server logs |
+| Run command | repo's BrowserStack profile flags | same Maven command, repo's local profile flags |
 
 ## 0. Repo support check
 
-Before honoring `--local`, check the repo's README/AGENTS.md for whether it documents local
-emulator execution. If it doesn't, tell the user this repo has no documented local-emulator setup
-and use BrowserStack instead.
+Before honoring `--local`, confirm the repo documents local execution (README/AGENTS.md): the
+local-app APK path, the local profile/flag names, the expected AVD. If it doesn't, tell the user
+this repo has no documented local-emulator setup and use BrowserStack instead.
 
-## 1. Preflight probe
+## 1. APK convention
+
+- The user drops the APK into the repo's local-app folder (default convention: `local-app/`,
+  gitignored — confirm the actual path in AGENTS.md).
+- Verify the APK file exists and is fresh enough for the scenario under test (check mtime; if the
+  scenario targets a just-merged feature and the APK is older than the merge, ask the user to
+  drop a newer build).
+- Never fetch an APK yourself unless the repo documents a download command.
+
+## 2. Preflight probe
 
 | Need | Live probe |
 |---|---|
-| Local Android toolchain | `adb`, `emulator`, and the repo's local driver server (e.g. `appium`) resolve on `PATH`; an AVD exists for it to boot; the local app binary the repo's docs point to is actually present on disk |
+| APK | present at the repo's local-app path |
+| Android toolchain | `adb` and `emulator` on `PATH`; an AVD exists (`emulator -list-avds`) |
+| Appium server | the repo's local driver server resolves (e.g. `appium` on `PATH`) — see §3 on version-manager false negatives |
+| Emulator | one running (`adb devices` shows `emulator-*`), or bootable headless: `emulator -avd <name> -no-window` (background it, wait for `adb wait-for-device` + boot-complete) |
 
-- **All present** → run against the local emulator using the exact command/profile flags the
-  repo's docs specify — never invent flags, read them from the README/AGENTS.md.
+- **All present** → run using the exact command/profile flags the repo's docs specify — never
+  invent flags, read them from the README/AGENTS.md.
 
-## 2. Node-tool false negative (version managers)
+## 3. Node-tool false negative (version managers)
 
 A Node-based tool (e.g. `appium`) reporting "missing" is often present but invisible to *this*
 shell when a Node version manager (fnm/nvm/volta) is in play:
@@ -36,8 +57,15 @@ shell when a Node version manager (fnm/nvm/volta) is in play:
   "looks missing" symptom, different cause, different fix (install under the default version, or
   point the default at the version that already has it).
 
-## 3. Genuinely missing
+## 4. Genuinely missing
 
 **Stop and ask**: name each piece that isn't installed or configured, point the user at the repo's
 local-emulator setup docs, and ask whether to install first or fall back to BrowserStack for this
 run. `--local` was an explicit request — don't silently substitute BrowserStack without asking.
+
+## 5. Local evidence gathering (for locator discovery / debug)
+
+- Page source: `adb shell uiautomator dump` then pull the XML, or Appium Inspector attached to the
+  running session.
+- Screenshots: `adb exec-out screencap -p > screen.png`.
+- Logs: `adb logcat` filtered to the app package; Appium server log for driver-side failures.

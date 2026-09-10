@@ -40,13 +40,16 @@ An empty result for a brand-new screen is expected, not a dead end — proceed t
 
 ## 3. Discovery — evidence for any new locator
 
-Never invent a selector. For elements no existing page object covers:
+Never invent a selector. For elements no existing page object covers, evidence comes from the
+active execution path:
 
-- If the target screen already has a captured page-source XML, screenshot, or BrowserStack App
-  Live/Appium Inspector session available, use it directly.
-- Otherwise, ask the user to supply one — a fresh BrowserStack session, App Live capture, or
-  Appium Inspector XML dump for the target screen. State exactly which screen/element you need
-  evidence for.
+- **BrowserStack path** — BrowserStack MCP session state, an App Live capture, or ask the user
+  for one. State exactly which screen/element you need evidence for.
+- **Local path (`--local`)** — boot the local emulator with the user's APK (see the
+  local-execution reference) and dump the screen: `adb shell uiautomator dump` + pull the XML,
+  or attach Appium Inspector.
+- Either way, a previously captured page-source XML or screenshot of the target screen works
+  directly — check for one first.
 - From the evidence, derive locators in priority order: Accessibility ID → `_ANDROID_ID` (only
   when a stable resource-id is present) → XPath (`_ANDROID_XPATH` / `_IOS_XPATH`) as a last
   resort. Keep Android/iOS pairs on the same base constant name.
@@ -74,8 +77,15 @@ format.
 
 ## 6. Verify — max 2 runs, then hand off
 
-Default target is BrowserStack. With `--local`, verify against a local Android emulator instead —
-follow the **local-execution preflight** (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check → toolchain probe → Node-version-manager false negatives → stop-and-ask on anything missing.
+Two execution paths, chosen per run:
+
+- **BrowserStack (default)** — run the new/updated scenario against the repo's BrowserStack
+  profile (confirm exact flags in AGENTS.md).
+- **Local (`--local`)** — the user drops the APK into the repo's local-app folder; boot a local
+  emulator and verify there. Follow the **local-execution reference**
+  (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check → APK
+  present → toolchain probe → Node-version-manager false negatives → stop-and-ask on anything
+  missing.
 
 Without `--local`, run only the new/updated scenario against BrowserStack (confirm the exact
 Maven/profile flags in `AGENTS.md`; illustrative default):

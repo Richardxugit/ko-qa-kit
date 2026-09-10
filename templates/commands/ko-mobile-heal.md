@@ -85,8 +85,13 @@ Wait for its report. If it returns **"NOT FIXED — needs product decision"** or
 
 ## 8. Re-verify
 
-Default target is BrowserStack. With `--local`, verify against a local Android emulator instead —
-follow the **local-execution preflight** (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check → toolchain probe → Node-version-manager false negatives → stop-and-ask on anything missing.
+Match how the scenario originally ran:
+
+- **BrowserStack (default)** — re-run against the repo's BrowserStack profile.
+- **Local (`--local`)** — user-supplied APK in the local-app folder + local emulator, per the
+  **local-execution reference** (`mobile-browserstack-triage` → `references/local-execution.md`).
+  Local debug evidence: `adb logcat`, local screenshots, Appium server logs (see the reference's
+  evidence-gathering section).
 
 Whichever target is used:
 - **Deterministic fix** (locator repair, wrong assertion target) — one re-run is sufficient proof.
