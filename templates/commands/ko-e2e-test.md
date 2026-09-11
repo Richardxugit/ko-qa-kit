@@ -118,4 +118,4 @@ Files created/changed, reuse stats ([REUSE]/[ADAPT]/[NEW] counts), the exact com
 
 ## Product-gap rule
 
-If the scenario fails because the app genuinely lacks the behavior (feature not implemented, real regression), the test is **correctly red**. Do not bend the test toward green — report the gap with the evidence and stop.
+If the scenario fails because the app genuinely lacks the behavior (feature not implemented, real regression), the test is **correctly red**. Do not bend the test toward green — report the gap with evidence and stop.
