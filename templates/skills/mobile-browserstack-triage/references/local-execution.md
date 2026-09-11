@@ -19,10 +19,18 @@ Before honoring `--local`, confirm the repo documents local execution (README/AG
 local-app APK path, the local profile/flag names, the expected AVD. If it doesn't, tell the user
 this repo has no documented local-emulator setup and use BrowserStack instead.
 
-## 1. APK convention
+## 1. APK convention + folder bootstrap
 
-- The user drops the APK into the repo's local-app folder (default convention: `local-app/`,
-  gitignored — confirm the actual path in AGENTS.md).
+- The user drops the APK into the repo's local-app folder (default convention: `local-app/` —
+  confirm the actual path in AGENTS.md).
+- **The folder is kit-created, not user-created.** If the documented folder doesn't exist yet
+  (typical on the first `--local` run), create it yourself before asking for the APK:
+  1. `mkdir -p <local-app path>`
+  2. Add the path to the repo's `.gitignore` (append only if not already covered — APKs are large
+     binaries and must never be committed).
+  3. Write a short `README.md` inside the folder stating what belongs there (the APK under test)
+     and that the folder is gitignored, so the convention survives fresh clones.
+  Report what you created, then continue — do not stop to ask permission for this step.
 - Verify the APK file exists and is fresh enough for the scenario under test (check mtime; if the
   scenario targets a just-merged feature and the APK is older than the merge, ask the user to
   drop a newer build).
@@ -73,7 +81,7 @@ Minimal local toolchain (macOS, Homebrew):
 | System image | `sdkmanager "system-images;android-34;google_apis;arm64-v8a"` (Apple Silicon; use `x86_64` on Intel) |
 | AVD | `avdmanager create avd -n ko_local -k "system-images;android-34;google_apis;arm64-v8a"` |
 | Appium server | `npm install -g appium` + `appium driver install uiautomator2` |
-| APK | ask the user to drop the build into the repo's local-app folder |
+| APK | ensure the folder exists first (§1 bootstrap), then ask the user to drop the build into it |
 
 After installs: accept licenses once (`sdkmanager --licenses`), then re-run the §2 probe to
 confirm green before running any test.

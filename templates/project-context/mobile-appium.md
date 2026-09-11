@@ -40,9 +40,10 @@ mvn clean test "-Dcucumber.filter.tags=@regression" -Dspring.profiles.active=<en
 <!-- TODO(repo): confirm exact profile names, device/locale values, and default tags -->
 
 **Execution paths:** BrowserStack is the default. This repo may also document a local-emulator
-path (`--local` in kit commands): the local-app APK folder (default convention `local-app/`,
-gitignored), the local profile/flag names, and the expected AVD. Fill those in here when they
-exist — kit commands refuse `--local` unless this section documents it.
+path (`--local` in kit commands): the local-app APK folder (default convention `local-app/`), the
+local profile/flag names, and the expected AVD. Kit commands create the folder and add it to
+`.gitignore` on the first `--local` run if it's missing — but they refuse `--local` unless this
+section documents the path.
 
 <!-- TODO(repo): local path — APK folder, local profile names, AVD name; delete this block if BrowserStack-only -->
 
