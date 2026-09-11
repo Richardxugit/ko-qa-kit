@@ -40,13 +40,16 @@ An empty result for a brand-new screen is expected, not a dead end — proceed t
 
 ## 3. Discovery — evidence for any new locator
 
-Never invent a selector. For elements no existing page object covers:
+Never invent a selector. For elements no existing page object covers, evidence comes from the
+active execution path:
 
-- If the target screen already has a captured page-source XML, screenshot, or BrowserStack App
-  Live/Appium Inspector session available, use it directly.
-- Otherwise, ask the user to supply one — a fresh BrowserStack session, App Live capture, or
-  Appium Inspector XML dump for the target screen. State exactly which screen/element you need
-  evidence for.
+- **BrowserStack path** — BrowserStack MCP session state, an App Live capture, or ask the user
+  for one. State exactly which screen/element you need evidence for.
+- **Local path (`--local`)** — boot the local emulator with the user's APK (see the
+  local-execution reference) and dump the screen: `adb shell uiautomator dump` + pull the XML,
+  or attach Appium Inspector.
+- Either way, a previously captured page-source XML or screenshot of the target screen works
+  directly — check for one first.
 - From the evidence, derive locators in priority order: Accessibility ID → `_ANDROID_ID` (only
   when a stable resource-id is present) → XPath (`_ANDROID_XPATH` / `_IOS_XPATH`) as a last
   resort. Keep Android/iOS pairs on the same base constant name.
@@ -74,39 +77,15 @@ format.
 
 ## 6. Verify — max 2 runs, then hand off
 
-Default target is BrowserStack. Pass `--local` with this command (e.g. `/ko-mobile-test --local
-<objective>`) to verify against a local Android emulator instead. Before honoring the flag, check
-the repo's README/AGENTS.md for whether it documents local emulator execution — if it doesn't,
-tell the user this repo has no documented local-emulator setup and verify on BrowserStack instead.
+Two execution paths, chosen per run:
 
-When `--local` is present and the repo documents local execution, preflight before attempting
-anything — never attempt a local run on the hope it'll work:
-
-| Need | Live probe |
-|---|---|
-| Local Android toolchain | `adb`, `emulator`, and the repo's local driver server (e.g. `appium`) resolve on `PATH`; an AVD exists for it to boot; the local app binary the repo's docs point to is actually present on disk |
-
-- **All present** → run against the local emulator using the exact command/profile flags the
-  repo's docs specify — never invent flags, read them from the README/AGENTS.md.
-- **A Node-based tool (e.g. `appium`) reports missing** → before concluding it's not installed,
-  check whether it's actually present but invisible to *this* shell — a common false negative when
-  a Node version manager (fnm/nvm/volta) is in play:
-  - Its init line usually lives only in `~/.zshrc` (or the user's equivalent interactive-only rc
-    file), which a non-interactive tool-runner shell — like the one this command may be running
-    in — never sources. Check the manager's real install dirs directly (e.g.
-    `~/.local/share/fnm/node-versions/*/installation/lib/node_modules/`,
-    `~/.nvm/versions/node/*/lib/node_modules/`) for the package before declaring it missing.
-  - If found there but not on `PATH`, the fix is adding the manager's init line to `~/.zshenv`
-    (read by every shell invocation, not just interactive ones) — propose this exact fix, but
-    **never edit shell dotfiles without the user's explicit go-ahead first.**
-  - Also check whether the package is installed under the *active* version but the manager's
-    actual **default** version (what a fresh shell resolves to) is different and doesn't have it —
-    same "looks missing" symptom, different cause, different fix (install under the default
-    version, or point the default at the version that already has it).
-- **Genuinely missing** → **stop and ask**: tell the user plainly which pieces aren't installed or
-  configured, naming each one, point them at the repo's local-emulator setup docs, and ask whether
-  to install first or fall back to BrowserStack for this run. `--local` was an explicit request —
-  don't silently substitute BrowserStack without asking.
+- **BrowserStack (default)** — run the new/updated scenario against the repo's BrowserStack
+  profile (confirm exact flags in AGENTS.md).
+- **Local (`--local`)** — the user drops the APK into the repo's local-app folder; boot a local
+  emulator and verify there. Follow the **local-execution reference**
+  (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check → APK
+  present → toolchain probe → Node-version-manager false negatives → stop-and-ask on anything
+  missing.
 
 Without `--local`, run only the new/updated scenario against BrowserStack (confirm the exact
 Maven/profile flags in `AGENTS.md`; illustrative default):

@@ -85,40 +85,13 @@ Wait for its report. If it returns **"NOT FIXED — needs product decision"** or
 
 ## 8. Re-verify
 
-Default target is BrowserStack, matching however the scenario was originally run. Pass `--local`
-with this command (e.g. `/ko-mobile-heal --local <scenario>`) to re-verify against a local Android
-emulator instead. Before honoring the flag, check the repo's README/AGENTS.md for whether it
-documents local emulator execution — if it doesn't, tell the user this repo has no documented
-local-emulator setup and re-verify on BrowserStack instead.
+Match how the scenario originally ran:
 
-When `--local` is present and the repo documents local execution, preflight before attempting
-anything — never attempt a local run on the hope it'll work:
-
-| Need | Live probe |
-|---|---|
-| Local Android toolchain | `adb`, `emulator`, and the repo's local driver server (e.g. `appium`) resolve on `PATH`; an AVD exists for it to boot; the local app binary the repo's docs point to is actually present on disk |
-
-- **All present** → re-run against the local emulator using the exact command/profile flags the
-  repo's docs specify — never invent flags, read them from the README/AGENTS.md.
-- **A Node-based tool (e.g. `appium`) reports missing** → before concluding it's not installed,
-  check whether it's actually present but invisible to *this* shell — a common false negative when
-  a Node version manager (fnm/nvm/volta) is in play:
-  - Its init line usually lives only in `~/.zshrc` (or the user's equivalent interactive-only rc
-    file), which a non-interactive tool-runner shell — like the one this command may be running
-    in — never sources. Check the manager's real install dirs directly (e.g.
-    `~/.local/share/fnm/node-versions/*/installation/lib/node_modules/`,
-    `~/.nvm/versions/node/*/lib/node_modules/`) for the package before declaring it missing.
-  - If found there but not on `PATH`, the fix is adding the manager's init line to `~/.zshenv`
-    (read by every shell invocation, not just interactive ones) — propose this exact fix, but
-    **never edit shell dotfiles without the user's explicit go-ahead first.**
-  - Also check whether the package is installed under the *active* version but the manager's
-    actual **default** version (what a fresh shell resolves to) is different and doesn't have it —
-    same "looks missing" symptom, different cause, different fix (install under the default
-    version, or point the default at the version that already has it).
-- **Genuinely missing** → **stop and ask**: tell the user plainly which pieces aren't installed or
-  configured, naming each one, point them at the repo's local-emulator setup docs, and ask whether
-  to install first or fall back to BrowserStack for this re-verification. `--local` was an explicit
-  request — don't silently substitute BrowserStack without asking.
+- **BrowserStack (default)** — re-run against the repo's BrowserStack profile.
+- **Local (`--local`)** — user-supplied APK in the local-app folder + local emulator, per the
+  **local-execution reference** (`mobile-browserstack-triage` → `references/local-execution.md`).
+  Local debug evidence: `adb logcat`, local screenshots, Appium server logs (see the reference's
+  evidence-gathering section).
 
 Whichever target is used:
 - **Deterministic fix** (locator repair, wrong assertion target) — one re-run is sufficient proof.
