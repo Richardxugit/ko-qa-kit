@@ -43,24 +43,10 @@ Archetype-specific rules in `.cursor/rules/` extend these.
 
 ## Security
 
-- Never commit secrets. Read config from environment / a config service.
+- Never commit secrets — no API keys, tokens, or passwords anywhere, including test fixtures. Read config from environment / a config service (e.g. SSM Parameter Store references).
 - Validate and sanitize external input at the boundary.
 - Don't read or log credential files (`.env`, `*.pem`, `*.key`, credentials, tokens).
-- Never commit decrypted `.env.secret` files. Use `scripts/crypt.js` (Ansible Vault) to encrypt/decrypt secrets locally.
-- Do not hardcode API keys, tokens, or passwords — even in test fixtures. Use environment variables or SSM Parameter Store references.
-
-## Monorepo shared library changes
-
-When modifying a shared library or package (anything consumed by multiple apps), check which apps depend on it and update their `force_update.txt` to trigger a pipeline rebuild:
-
-```bash
-date > apps/<app-name>/force_update.txt
-```
-
-- **Only force-update apps that have NO file changes in this commit.** If an app already has code changes alongside the lib change, its pipeline will trigger naturally — no `force_update.txt` needed.
-- Force-update is only for apps that consume the changed lib but have no modified files of their own in this commit.
-- Commit the `force_update.txt` changes together with the lib change in the same commit.
-- If unsure which apps are affected, search for imports of the changed package across `apps/`.
+- Never commit decrypted `.env.secret` files; use the repo's encryption script (e.g. `scripts/crypt.js`, Ansible Vault) for local encrypt/decrypt.
 
 ## Commits
 
@@ -68,35 +54,15 @@ date > apps/<app-name>/force_update.txt
 - **Commit format** — check the branch name for a ticket pattern (e.g. `CON-2000`, `OXP-2000`, `KO-1234`):
   - If ticket found: `type: TICKET short message` (e.g. `feat: CON-2000 add cart page`)
   - If no ticket in branch: `type: short message` (e.g. `fix: correct price display`)
-- **Keep messages under 10 words.** Be concise and specific.
-- **Types:** `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, `build`, `revert`.
-- **Before committing:** check if the repo has a Husky pre-commit hook or commitlint config. Run the commit through the hook to ensure it's valid. If the hook rejects, fix the format.
+- **Under 10 words**, concise and specific. **Types:** `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, `build`, `revert`.
+- **Before committing:** if the repo has a Husky/commitlint hook, run the commit through it; if rejected, fix the format.
 - One logical change per commit; keep diffs reviewable.
 
-## Superpowers & Caveman integration
+## Superpowers integration
 
-When available, use these external skills to improve workflow quality. **If not installed, the kit works fully standalone** — use Cursor's built-in plan mode and the `/ko-*` commands directly.
+When the superpowers skills are installed, the `/ko-*` commands invoke them for the matching phase (brainstorming, planning, TDD, debugging, review). **If not installed, the kit works fully standalone** — use Cursor's built-in plan mode and the `/ko-*` commands directly.
 
-**Spec/plan file location override:** Save all specs and plans to `.cursor/specs/` — NOT `docs/superpowers/specs/` or `docs/superpowers/plans/`. This is a user preference that overrides the superpowers default paths.
-- Specs: `.cursor/specs/YYYY-MM-DD-<topic>-design.md`
-- Plans: `.cursor/specs/YYYY-MM-DD-<topic>-plan.md`
-
-- **`superpowers:brainstorming`** — invoke before creative/feature work to explore intent and requirements.
-- **`superpowers:writing-plans`** — invoke for non-trivial multi-step tasks before coding.
-- **`superpowers:executing-plans`** — invoke to execute plans with review checkpoints.
-- **`superpowers:subagent-driven-development`** — invoke to dispatch independent tasks to sub-agents in parallel.
-- **`superpowers:test-driven-development`** — invoke for red-green-refactor: write failing test → implement → refactor.
-- **`superpowers:systematic-debugging`** — invoke for bug investigation: hypothesis-driven, evidence before fixes.
-- **`superpowers:verification-before-completion`** — invoke before claiming work is done: run checks, confirm output.
-- **`superpowers:requesting-code-review`** — invoke to structure a thorough code review.
-- **`caveman`** — invoke for token-efficient compressed responses (~65% output reduction). Activate with `/caveman` or "talk like caveman". Technical accuracy preserved, only fluff removed. Off with "normal mode".
-
-## Specs and docs (style)
-
-- Plain English, short sentences. No filler ("it is important to note", "in order to", "leverage") — say it once, say it plainly.
-- Prefer structure over prose: tables for options and comparisons, bullet lists for requirements, **Mermaid diagrams** for flows, sequences, and state (```mermaid blocks render in Cursor and GitHub). One diagram replaces three paragraphs.
-- A spec answers three questions fast: what problem (3 lines max), what we decided, how we verify. Everything else is supporting detail — appendix or cut.
-- Every requirement must be testable: acceptance criteria are observable behaviors, not aspirations.
+**Spec/plan file location override:** save all specs and plans to `.cursor/specs/` (`YYYY-MM-DD-<topic>-design.md` / `-plan.md`) — NOT the superpowers default `docs/superpowers/` paths. This is a user preference that overrides the superpowers default.
 
 ## Simplicity (hard rules)
 

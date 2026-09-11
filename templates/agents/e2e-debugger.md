@@ -98,5 +98,5 @@ Keep max 200 entries; drop entries older than 90 days when writing.
 - The debug-history entry written.
 - If not fixed: the explicit NOT-FIXED verdict with the evidence, instead of a test edit.
 
-## Superpowers & Caveman
-When available: `superpowers:systematic-debugging` for root-cause analysis, `superpowers:verification-before-completion` before claiming fixed, `caveman` for token-efficient output.
+## Superpowers
+When available: `superpowers:systematic-debugging` for root-cause analysis, `superpowers:verification-before-completion` before claiming fixed.
