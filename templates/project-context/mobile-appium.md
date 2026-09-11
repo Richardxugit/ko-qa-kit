@@ -3,7 +3,7 @@
 A BDD mobile automation suite (Java + Cucumber-JVM + Spring + Appium) validating native Android
 and iOS apps, executed on BrowserStack App Automate.
 
-<!-- run /ko-onboard to fill in repo specifics -->
+<!-- TODO(repo): to fill in repo specifics -->
 
 ## Stack
 - **Language:** Java 17
@@ -28,7 +28,7 @@ src/test/resources/
   config/devices/   # Device configuration
   application.yaml  # Spring profiles (env × platform × locale × execution-type)
 ```
-<!-- run /ko-onboard: confirm the actual base package (e.g. com.<org>.testing) -->
+<!-- TODO(repo): confirm the actual base package (e.g. com.<org>.testing) -->
 
 ## Key commands
 ```bash
@@ -37,7 +37,7 @@ mvn clean test "-Dcucumber.filter.tags=@regression" -Dspring.profiles.active=<en
   -Ddevice=<android|ios> -Dlocale=<AU|NZ> -Denvironment=<env> \
   -Dcucumber.execution.parallel.config.fixed.parallelism=1 -DretryCount=0
 ```
-<!-- run /ko-onboard: confirm exact profile names, device/locale values, and default tags -->
+<!-- TODO(repo): confirm exact profile names, device/locale values, and default tags -->
 
 **Every run — local or CI — targets BrowserStack.** `local`/`ci` only changes where the Maven
 process runs; the device is always a BrowserStack cloud device (Android and iOS both), unless
@@ -70,8 +70,8 @@ this repo has since added a local-emulator/simulator execution path — confirm 
 
 ## Delivery
 
-- **Product family repos & local paths:** <!-- run /ko-onboard: sibling app repo(s) that produce the APK/IPA under test, and their local checkout paths -->
-- **App build pipeline:** <!-- run /ko-onboard: where the APK/IPA is built and uploaded to BrowserStack (e.g. Bitrise), and how to get the latest bs:// app id -->
-- **CI pipelines:** <!-- run /ko-onboard: GitHub Actions workflow names + when each runs -->
-- **BrowserStack project/build naming:** <!-- run /ko-onboard: project name, build naming convention, dashboard link -->
-- **Post-run triage:** <!-- run /ko-onboard: where reports/screenshots land, and who to escalate a confirmed app regression to -->
+- **Product family repos & local paths:** <!-- TODO(repo): sibling app repo(s) that produce the APK/IPA under test, and their local checkout paths -->
+- **App build pipeline:** <!-- TODO(repo): where the APK/IPA is built and uploaded to BrowserStack (e.g. Bitrise), and how to get the latest bs:// app id -->
+- **CI pipelines:** <!-- TODO(repo): GitHub Actions workflow names + when each runs -->
+- **BrowserStack project/build naming:** <!-- TODO(repo): project name, build naming convention, dashboard link -->
+- **Post-run triage:** <!-- TODO(repo): where reports/screenshots land, and who to escalate a confirmed app regression to -->

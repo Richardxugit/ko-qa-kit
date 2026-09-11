@@ -1,8 +1,8 @@
-// packages/kit-core/src/export.js
+// ko-qa-kit/src/scaffold-core/export.js
 import fs from 'fs-extra';
 import path from 'path';
 import { parseFrontmatter } from './frontmatter.js';
-import { getCommandEntries } from './scaffold-engine.js';
+import { getCommandEntries } from './engine.js';
 
 /**
  * Extract a command's skill/agent/rule dependencies.

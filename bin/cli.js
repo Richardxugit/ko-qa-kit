@@ -6,14 +6,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import prompts from 'prompts';
-import { parseFrontmatter } from 'kit-core';
+import { parseFrontmatter, exportCommand, exportPlugin } from '../src/scaffold-core/index.js';
 import { runInit, runPrune } from '../src/init.js';
 import {
-  installResource, uninstallResource, installFolder, listAvailableResources,
-  getCommandEntries, COMMAND_FOLDERS, MANIFEST_REL_PATH, ARCHETYPE_RESOURCES,
+  installResource, uninstallResource, listAvailableResources,
+  getCommandEntries, MANIFEST_REL_PATH, ARCHETYPE_RESOURCES,
 } from '../src/scaffold.js';
-import { detectArchetype } from '../src/detect.js';
-import { exportCommand, exportPlugin } from 'kit-core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = path.resolve(__dirname, '..', 'templates');
@@ -25,7 +23,7 @@ program
   .command('init')
   .description('Initialize Cursor configuration in the current project')
   .option('--no-overwrite', "Do not overwrite existing kit-managed files (today's behavior)")
-  .option('--archetype <archetype>', 'Skip detection and prompts, scaffold for this archetype')
+  .option('--archetype <archetype>', 'Skip detection and prompts; comma-separate for multi-archetype monorepos')
   .action(async (opts) => {
     await runInit(process.cwd(), { overwrite: opts.overwrite, archetype: opts.archetype });
   });
@@ -37,25 +35,18 @@ program
 
 program
   .command('install <type> <name>')
-  .description('Install a single resource (skill, agent, command, hook) or a whole command folder: install folder qa')
+  .description('Install a single resource (skill, agent, command, rule, hook)')
   .option('-g, --global', 'Install to ~/.cursor/ (available across all repos)')
   .option('--no-overwrite', 'Do not overwrite existing files')
-  .option('--all', 'With "folder": also install commands restricted to archetypes this repo does not match')
   .action(async (type, name, opts) => {
     const targetDir = opts.global ? os.homedir() : process.cwd();
-    let result;
-    if (type === 'folder' || type === 'folders') {
-      const archetype = opts.global ? null : await detectArchetype(targetDir);
-      result = await installFolder(targetDir, name, TEMPLATE_DIR, { overwrite: opts.overwrite, all: opts.all, archetype });
-    } else {
-      result = await installResource(targetDir, type, name, TEMPLATE_DIR, { overwrite: opts.overwrite });
-    }
+    const result = await installResource(targetDir, type, name, TEMPLATE_DIR, { overwrite: opts.overwrite });
     printInstallResult(result, opts.global);
   });
 
 program
   .command('uninstall <type> <name>')
-  .description('Remove a single installed resource (skill, agent, command, hook) — kept if another installed kit still needs it')
+  .description('Remove a single installed resource (skill, agent, command, rule, hook) — kept if another installed kit still needs it')
   .option('-g, --global', 'Uninstall from ~/.cursor/')
   .action(async (type, name, opts) => {
     const targetDir = opts.global ? os.homedir() : process.cwd();
@@ -104,7 +95,7 @@ program
   .option('-d, --description <text>', 'Plugin description')
   .option('-o, --output <dir>', 'Output directory', 'exported')
   .action(async (opts) => {
-    const picked = await resolveExportPluginArgs(opts, TEMPLATE_DIR, COMMAND_FOLDERS);
+    const picked = await resolveExportPluginArgs(opts, TEMPLATE_DIR);
     const result = await exportPlugin({
       name: picked.name, commands: picked.commands, description: picked.description,
       templateDir: TEMPLATE_DIR, outputDir: path.resolve(opts.output), resourceMap: ARCHETYPE_RESOURCES,
@@ -155,7 +146,7 @@ function printExportResult(result) {
   console.log();
 }
 
-async function resolveExportPluginArgs(opts, templateDir, commandFolders) {
+async function resolveExportPluginArgs(opts, templateDir) {
   let name = opts.name;
   let commands = opts.commands ? opts.commands.split(',').map(c => c.trim()).filter(Boolean) : undefined;
   let description = opts.description;

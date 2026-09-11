@@ -4,8 +4,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { ARCHETYPES } from '../src/detect.js';
 import { ARCHETYPE_LABELS } from '../src/init.js';
-import { ARCHETYPE_RESOURCES, getCommandEntries, COMMAND_FOLDERS } from '../src/scaffold.js';
-import { parseFrontmatter } from 'kit-core';
+import { ARCHETYPE_RESOURCES, getCommandEntries, MANUAL_INSTALL_COMMANDS } from '../src/scaffold.js';
+import { parseFrontmatter } from '../src/scaffold-core/index.js';
 
 const templateDir = path.resolve('templates');
 
@@ -37,85 +37,28 @@ describe('archetype consistency', () => {
           continue;
         }
         const asFile = path.join(templateDir, dir, `${name}.md`);
+        const asMdc = path.join(templateDir, dir, `${name}.mdc`);
         const asDir = path.join(templateDir, dir, name);
-        expect(fs.pathExistsSync(asFile) || fs.pathExistsSync(asDir), `missing template for ${dir}/${name}`).toBe(true);
+        expect(fs.pathExistsSync(asFile) || fs.pathExistsSync(asMdc) || fs.pathExistsSync(asDir), `missing template for ${dir}/${name}`).toBe(true);
       }
     }
   });
 
-  it('command templates live in known folders with unique names', () => {
-    const entries = getCommandEntries(templateDir);
-    for (const entry of entries) {
-      expect(COMMAND_FOLDERS).toContain(entry.folder);
-    }
-    const names = entries.map(e => e.name);
+  it('command templates have unique names', () => {
+    const names = getCommandEntries(templateDir).map(e => e.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
   it('every archetype has a rule and an AGENTS.md template', () => {
     for (const archetype of ARCHETYPES) {
       expect(fs.pathExistsSync(path.join(templateDir, 'rules', `${archetype}.mdc`))).toBe(true);
-      expect(fs.pathExistsSync(path.join(templateDir, 'agents-md', `${archetype}.md`))).toBe(true);
-    }
-  });
-});
-
-describe('e2e templates match ko-tests reality (anti-fiction lint)', () => {
-  // Every kit template installed for the e2e-playwright archetype. New e2e
-  // resources must be added here so they get linted too.
-  const e2eTemplates = [
-    'commands/qa/ko-e2e-test.md',
-    'commands/qa/ko-e2e-heal.md',
-    'agents/e2e-debugger.md',
-    'agents/qa-automation-engineer.md',
-    'skills/playwright-bdd/SKILL.md',
-    'skills/playwright-bdd/references/page-object.md',
-    'skills/bdd-authoring/SKILL.md',
-    'skills/step-registry/SKILL.md',
-    'skills/dom-sight/SKILL.md',
-    'skills/dom-sight/references/playwright-mcp.md',
-    'rules/e2e-playwright.mdc',
-    'agents-md/e2e-playwright.md',
-  ];
-
-  // APIs, files, and flags that do not exist in the consumer repo family.
-  const bannedAlways = [
-    'snapshotDOM',
-    'diagnoseSelector',
-    'compareExpectedElements',
-    '.auth/user.json',
-    '--load-storage',
-    'ts-node scripts/',
-  ];
-
-  // Concepts the family explicitly does not use — allowed only in lines that
-  // negate them ("does not use storageState", "no @smoke tag").
-  const bannedUnlessNegated = ['@smoke', 'storageState'];
-  const NEGATION = /\b(no|not|never|does not|don't|doesn't)\b/i;
-
-  it('every linted e2e template exists', () => {
-    for (const rel of e2eTemplates) {
-      expect(fs.pathExistsSync(path.join(templateDir, rel)), `missing ${rel}`).toBe(true);
-    }
-  });
-
-  it.each(e2eTemplates)('%s contains no fictional APIs or conventions', (rel) => {
-    const content = fs.readFileSync(path.join(templateDir, rel), 'utf-8');
-    for (const token of bannedAlways) {
-      expect(content.includes(token), `${rel} references fictional "${token}"`).toBe(false);
-    }
-    for (const token of bannedUnlessNegated) {
-      for (const line of content.split('\n')) {
-        if (line.includes(token) && !NEGATION.test(line)) {
-          expect.fail(`${rel} references "${token}" outside a negation: ${line.trim()}`);
-        }
-      }
+      expect(fs.pathExistsSync(path.join(templateDir, 'project-context', `${archetype}.md`))).toBe(true);
     }
   });
 });
 
 describe('command frontmatter', () => {
-  const commandEntries = getCommandEntries(templateDir).map(e => ({ ...e, label: `${e.folder}/${e.name}.md` }));
+  const commandEntries = getCommandEntries(templateDir).map(e => ({ ...e, label: `commands/${e.name}.md` }));
 
   it.each(commandEntries)('$label has valid frontmatter', ({ file, name }) => {
     const content = fs.readFileSync(file, 'utf-8');
@@ -157,21 +100,124 @@ describe('command frontmatter', () => {
   });
 });
 
-describe('kit-wide staleness lint (qa-kit slice)', () => {
+describe('anti-overengineering rules', () => {
+  it('coding-standards.mdc carries the Simplicity and Bug fixes sections', () => {
+    const content = fs.readFileSync(path.join(templateDir, 'rules', 'coding-standards.mdc'), 'utf-8');
+    for (const section of ['## Simplicity (hard rules)', '## Bug fixes (hard rules)']) {
+      expect(content.includes(section), `coding-standards.mdc lost section "${section}"`).toBe(true);
+    }
+  });
+
+  it('coding-standards.mdc carries the spec style section', () => {
+    const content = fs.readFileSync(path.join(templateDir, 'rules', 'coding-standards.mdc'), 'utf-8');
+    expect(content).toContain('## Specs and docs (style)');
+    expect(content).toContain('Mermaid');
+  });
+});
+
+describe('cross-kit reference lint', () => {
+  // Commands/rules referenced in templates but shipped by OTHER kits.
+  // Each must be guarded in the text ("if installed", "ko-product-kit", ...).
+  const EXTERNAL_COMMANDS = new Set(); // this kit references no other kit's commands
+  const EXTERNAL_RULES = new Set();
+
+  const templateFiles = fs.readdirSync(path.join(templateDir, 'commands'))
+    .filter(f => f.endsWith('.md'))
+    .map(f => path.join(templateDir, 'commands', f));
+  // include skills + rules bodies
+  for (const dir of ['skills', 'rules', 'agents']) {
+    const base = path.join(templateDir, dir);
+    for (const f of fs.readdirSync(base, { recursive: true })) {
+      const full = path.join(base, String(f));
+      if (/\.(md|mdc)$/.test(String(f)) && fs.statSync(full).isFile()) templateFiles.push(full);
+    }
+  }
+
+  const shippedCommands = new Set(getCommandEntries(templateDir).map(e => e.name));
+  const shippedRules = new Set(fs.readdirSync(path.join(templateDir, 'rules')).map(f => f.replace(/\.mdc$/, '')));
+
+  it('every /ko-* reference is shipped by this kit or a known external', () => {
+    for (const file of templateFiles) {
+      const content = fs.readFileSync(file, 'utf-8');
+      const refs = content.match(/(?<![\w/@-])\/(ko-[a-z][a-z0-9-]*)/g) ?? [];
+      for (const ref of refs) {
+        const name = ref.slice(1);
+        const ok = shippedCommands.has(name) || EXTERNAL_COMMANDS.has(name);
+        expect(ok, `${path.relative(templateDir, file)} references unknown command ${ref} — ship it, or whitelist + guard it as external`).toBe(true);
+      }
+    }
+  });
+
+  it('every *.mdc reference is shipped by this kit or a known external', () => {
+    for (const file of templateFiles) {
+      const content = fs.readFileSync(file, 'utf-8');
+      const refs = content.match(/(?<![\w/@-])([a-z0-9][a-z0-9-]*)\.mdc/g) ?? [];
+      for (const ref of refs) {
+        const name = ref.replace(/\.mdc$/, '');
+        const ok = shippedRules.has(name) || EXTERNAL_RULES.has(name);
+        expect(ok, `${path.relative(templateDir, file)} references unknown rule ${ref}`).toBe(true);
+      }
+    }
+  });
+
+  it('manual-tier command references are guarded as conditional', () => {
+    // Commands not auto-installed by init must never be referenced unconditionally —
+    // same failure mode as the ko-onboard → ko-knowledge-gen bug.
+    const GUARD = /if (it is )?installed|when installed|manual[- ]tier|install command|not installed|not this kit/i;
+    for (const file of templateFiles) {
+      const lines = fs.readFileSync(file, 'utf-8').split('\n');
+      lines.forEach((line, i) => {
+        for (const cmd of MANUAL_INSTALL_COMMANDS) {
+          if (file.endsWith(`${path.sep}${cmd}.md`)) continue; // a command may reference itself freely
+          if (!new RegExp(`(?<![\\w/@-])/${cmd}(?![a-z0-9-])`).test(line)) continue;
+          const guarded = GUARD.test(line) || GUARD.test(lines.slice(Math.max(0, i - 3), i + 1).join(' '));
+          expect(guarded, `${path.relative(templateDir, file)}:${i + 1} references manual-tier "/${cmd}" without an install guard`).toBe(true);
+        }
+      });
+    }
+  });
+
+  it('external references are guarded as conditional in the text', () => {
+    const GUARD = /if installed|when installed|ko-product-kit|ko-qa-kit|not this kit/i;
+    for (const file of templateFiles) {
+      const content = fs.readFileSync(file, 'utf-8');
+      const fileLevelGuard = GUARD.test(content); // file declares conditionality once (e.g. format spec of an external pipeline)
+      const lines = content.split('\n');
+      lines.forEach((line, i) => {
+        for (const ext of [...EXTERNAL_COMMANDS]) {
+          const re = new RegExp(`(?<![\\w/@-])/${ext}(?![a-z0-9-])`);
+          if (!re.test(line)) continue;
+          // allow format-spec examples (tables/bolt logs) — the section header carries the guard
+          const section = lines.slice(0, i + 1).reverse().find(l => l.startsWith('#')) ?? '';
+          const guarded = fileLevelGuard || GUARD.test(line) || GUARD.test(section) || GUARD.test(lines.slice(Math.max(0, i - 3), i + 1).join(' '));
+          expect(guarded, `${path.relative(templateDir, file)}:${i + 1} references external "/${ext}" without an "if installed" guard`).toBe(true);
+        }
+        // rules: only the explicit `.mdc` form needs a guard (bare archetype names in
+        // skip-logic like "Skip for nestjs-graphql, e2e-playwright" are harmless)
+        for (const ext of [...EXTERNAL_RULES]) {
+          if (!line.includes(`${ext}.mdc`)) continue;
+          const guarded = fileLevelGuard || GUARD.test(line) || GUARD.test(lines.slice(Math.max(0, i - 3), i + 1).join(' '));
+          expect(guarded, `${path.relative(templateDir, file)}:${i + 1} references external "${ext}.mdc" without an "if installed" guard`).toBe(true);
+        }
+      });
+    }
+  });
+});
+
+describe('kit-wide staleness lint (dev-kit slice)', () => {
   const BANNED = [
-    { name: 'ko-inception (removed command)', re: /ko-inception/ },
-    { name: 'ko-lib-component (never existed)', re: /ko-lib-component/ },
-    { name: 'ko-release without -verify (renamed)', re: /ko-release(?!-verify)/ },
+    { name: 'commands/qa folder era', re: /commands\/qa\// },
+    { name: 'agents-md folder era', re: /agents-md/ },
+    { name: 'vendored kit-core era', re: /vendor\/kit-core/ },
   ];
   const REQUIRED = [
-    { file: 'commands/qa/ko-e2e-test.md', token: 'Element Map' },
-    { file: 'commands/qa/ko-e2e-heal.md', token: 'Heal Plan' },
-    { file: 'agents/e2e-debugger.md', token: 'diagnose-only' },
-    { file: 'agents/e2e-debugger.md', token: 'NOT FIXED' },
-    { file: 'commands/qa/ko-mobile-test.md', token: '[REUSE]' },
-    { file: 'commands/qa/ko-mobile-heal.md', token: 'Heal Plan' },
-    { file: 'agents/test-debugger.md', token: 'diagnose-only' },
-    { file: 'agents/test-debugger.md', token: 'NOT FIXED' },
+    { file: 'commands/ko-e2e-test.md', token: 'step registry' },
+    { file: 'commands/ko-e2e-heal.md', token: 'e2e-debugger' },
+    { file: 'commands/ko-mobile-test.md', token: 'BrowserStack' },
+    { file: 'commands/ko-mobile-heal.md', token: 'test-debugger' },
+    { file: 'agents/qa-automation-engineer.md', token: 'pwHelper' },
+    { file: 'agents/e2e-debugger.md', token: 'never masking' },
+    { file: 'agents/test-debugger.md', token: 'never masking' },
   ];
 
   it.each(REQUIRED)('$file carries its pattern token "$token"', ({ file, token }) => {

@@ -2,7 +2,7 @@
 
 A dedicated end-to-end testing repository using Playwright + playwright-bdd (Cucumber/Gherkin BDD layer) with a custom step registry system.
 
-<!-- run /ko-onboard to fill in repo specifics -->
+<!-- TODO(repo): to fill in repo specifics -->
 
 ## ⚠️ CRITICAL: Step Registry
 
@@ -82,7 +82,7 @@ npx playwright test --debug
 npx playwright test --ui
 npx playwright show-trace trace.zip
 ```
-<!-- run /ko-onboard to confirm environment names, RUN_MODE values, and available tags -->
+<!-- TODO(repo): to confirm environment names, RUN_MODE values, and available tags -->
 
 ## Critical conventions
 - **Step patterns:** Regex ONLY (`/^pattern$/`). NEVER Cucumber expressions.
@@ -111,8 +111,8 @@ npx playwright show-trace trace.zip
 
 ## Delivery
 
-- **Product family repos & local paths:** <!-- run /ko-onboard: sibling repos + checkout paths -->
-- **Deploy pipelines:** <!-- run /ko-onboard: Buildkite pipeline names + nonProd/prod step names -->
-- **Feature flags:** <!-- run /ko-onboard: flag tool + key naming convention -->
-- **Post-deploy sanity:** <!-- run /ko-onboard: sanity/smoke command + dashboards/monitors to watch -->
-- **Step registry & helpers:** <!-- run /ko-onboard: registry:* aliases + page-helper (pwHelper/BasePage-equivalent) names -->
+- **Product family repos & local paths:** <!-- TODO(repo): sibling repos + checkout paths -->
+- **Deploy pipelines:** <!-- TODO(repo): Buildkite pipeline names + nonProd/prod step names -->
+- **Feature flags:** <!-- TODO(repo): flag tool + key naming convention -->
+- **Post-deploy sanity:** <!-- TODO(repo): sanity/smoke command + dashboards/monitors to watch -->
+- **Step registry & helpers:** <!-- TODO(repo): registry:* aliases + page-helper (pwHelper/BasePage-equivalent) names -->

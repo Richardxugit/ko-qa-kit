@@ -1,4 +1,4 @@
-// packages/kit-core/src/manifest.js
+// ko-qa-kit/src/scaffold-core/manifest.js
 //
 // Each kit writes its own manifest at a caller-supplied relative path (e.g.
 // .cursor/.ko-dev-kit-manifest.json) so multiple kits can coexist in one
@@ -21,7 +21,7 @@ export async function readManifest(projectDir, manifestRelPath) {
  * Write the manifest, hashing each owned file's current disk content.
  * Files missing from disk (e.g. skipped by --no-overwrite races) are omitted.
  */
-export async function writeManifest(projectDir, manifestRelPath, { kitVersion, archetype, files }) {
+export async function writeManifest(projectDir, manifestRelPath, { kitVersion, archetype, archetypes, files }) {
   const entries = [];
   for (const rel of [...files].sort()) {
     const abs = path.join(projectDir, rel);
@@ -30,7 +30,9 @@ export async function writeManifest(projectDir, manifestRelPath, { kitVersion, a
   }
   const manifest = {
     kitVersion,
-    archetype,
+    // `archetype` (first match) kept for older readers; `archetypes` is authoritative.
+    archetype: archetype ?? archetypes?.[0] ?? null,
+    archetypes: archetypes ?? (archetype ? [archetype] : []),
     installedAt: new Date().toISOString(),
     files: entries,
   };
@@ -97,7 +99,7 @@ export async function pruneOrphans(projectDir, currentFiles, oldManifest, option
   return { removed, kept, shared };
 }
 
-async function hashFile(absPath) {
+export async function hashFile(absPath) {
   const content = await fs.readFile(absPath);
   return crypto.createHash('sha256').update(content).digest('hex');
 }

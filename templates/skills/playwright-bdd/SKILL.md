@@ -53,7 +53,7 @@ class CheckoutPage extends BasePage {
 export const checkoutPage = new CheckoutPage(); // register in src/pages/index.ts
 ```
 
-- A flow's first step opens the page: `await checkoutPage.open(page)` — `BasePage.open` hands the `page` to the `pwHelper` singleton (`pwHelper.setPage(page)`); every later call rides that page. <!-- /ko-onboard: confirm the exact open/locator helper names -->
+- A flow's first step opens the page: `await checkoutPage.open(page)` — `BasePage.open` hands the `page` to the `pwHelper` singleton (`pwHelper.setPage(page)`); every later call rides that page. <!-- TODO(repo): confirm the exact open/locator helper names -->
 - **No assertions inside page-object actions.** Verification lives in `Then` steps.
 - One selector per element, `data-testid` first. Never fallback chains, never XPath.
 - Accessibility checks go through the helper: `pwHelper.analyseAccessibilityResults(...)`.
