@@ -13,11 +13,22 @@ this procedure exactly — never attempt a local run on the hope it'll work.
 | Debug logs | BrowserStack MCP (device/network/session logs, video) | `adb logcat`, local screenshots, Appium server logs |
 | Run command | repo's BrowserStack profile flags | same Maven command, repo's local profile flags |
 
-## 0. Repo support check
+## 0. Repo support check — configure if missing
 
-Before honoring `--local`, confirm the repo documents local execution (README/AGENTS.md): the
-local-app APK path, the local profile/flag names, the expected AVD. If it doesn't, tell the user
-this repo has no documented local-emulator setup and use BrowserStack instead.
+`--local` is an explicit request to run locally — never silently fall back to BrowserStack, and
+never refuse just because the config block doesn't exist yet. Get the repo configured first,
+then run.
+
+- **Already documented** (README/AGENTS.md has the local-app APK path, the local profile/flag
+  names, the expected AVD) → proceed to §1.
+- **Not documented** → set it up with the user before running:
+  1. Bootstrap the folder per §1 (`mkdir`, `.gitignore` entry, folder `README.md`).
+  2. Derive what you can from the repo itself: read `application.yaml` / Spring profiles, the
+     Maven `pom.xml`, and any existing run scripts to determine the local profile/flag names.
+     Only ask the user for what genuinely can't be derived (e.g. preferred AVD name).
+  3. Write the local-execution block into AGENTS.md (APK path, profile flags, AVD name) so every
+     future `--local` run passes this check immediately.
+  4. Show the user the config you derived and wrote, get their go-ahead, then continue to §1.
 
 ## 1. APK convention + folder bootstrap
 
