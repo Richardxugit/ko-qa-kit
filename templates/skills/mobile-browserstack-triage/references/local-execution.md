@@ -13,16 +13,35 @@ this procedure exactly — never attempt a local run on the hope it'll work.
 | Debug logs | BrowserStack MCP (device/network/session logs, video) | `adb logcat`, local screenshots, Appium server logs |
 | Run command | repo's BrowserStack profile flags | same Maven command, repo's local profile flags |
 
-## 0. Repo support check
+## 0. Repo support check — configure if missing
 
-Before honoring `--local`, confirm the repo documents local execution (README/AGENTS.md): the
-local-app APK path, the local profile/flag names, the expected AVD. If it doesn't, tell the user
-this repo has no documented local-emulator setup and use BrowserStack instead.
+`--local` is an explicit request to run locally — never silently fall back to BrowserStack, and
+never refuse just because the config block doesn't exist yet. Get the repo configured first,
+then run.
 
-## 1. APK convention
+- **Already documented** (README/AGENTS.md has the local-app APK path, the local profile/flag
+  names, the expected AVD) → proceed to §1.
+- **Not documented** → set it up with the user before running:
+  1. Bootstrap the folder per §1 (`mkdir`, `.gitignore` entry, folder `README.md`).
+  2. Derive what you can from the repo itself: read `application.yaml` / Spring profiles, the
+     Maven `pom.xml`, and any existing run scripts to determine the local profile/flag names.
+     Only ask the user for what genuinely can't be derived (e.g. preferred AVD name).
+  3. Write the local-execution block into AGENTS.md (APK path, profile flags, AVD name) so every
+     future `--local` run passes this check immediately.
+  4. Show the user the config you derived and wrote, get their go-ahead, then continue to §1.
 
-- The user drops the APK into the repo's local-app folder (default convention: `local-app/`,
-  gitignored — confirm the actual path in AGENTS.md).
+## 1. APK convention + folder bootstrap
+
+- The user drops the APK into the repo's local-app folder (default convention: `local-app/` —
+  confirm the actual path in AGENTS.md).
+- **The folder is kit-created, not user-created.** If the documented folder doesn't exist yet
+  (typical on the first `--local` run), create it yourself before asking for the APK:
+  1. `mkdir -p <local-app path>`
+  2. Add the path to the repo's `.gitignore` (append only if not already covered — APKs are large
+     binaries and must never be committed).
+  3. Write a short `README.md` inside the folder stating what belongs there (the APK under test)
+     and that the folder is gitignored, so the convention survives fresh clones.
+  Report what you created, then continue — do not stop to ask permission for this step.
 - Verify the APK file exists and is fresh enough for the scenario under test (check mtime; if the
   scenario targets a just-merged feature and the APK is older than the merge, ask the user to
   drop a newer build).
@@ -73,7 +92,7 @@ Minimal local toolchain (macOS, Homebrew):
 | System image | `sdkmanager "system-images;android-34;google_apis;arm64-v8a"` (Apple Silicon; use `x86_64` on Intel) |
 | AVD | `avdmanager create avd -n ko_local -k "system-images;android-34;google_apis;arm64-v8a"` |
 | Appium server | `npm install -g appium` + `appium driver install uiautomator2` |
-| APK | ask the user to drop the build into the repo's local-app folder |
+| APK | ensure the folder exists first (§1 bootstrap), then ask the user to drop the build into it |
 
 After installs: accept licenses once (`sdkmanager --licenses`), then re-run the §2 probe to
 confirm green before running any test.

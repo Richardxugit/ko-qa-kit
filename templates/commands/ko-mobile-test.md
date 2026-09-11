@@ -81,11 +81,12 @@ Two execution paths, chosen per run:
 
 - **BrowserStack (default)** — run the new/updated scenario against the repo's BrowserStack
   profile (confirm exact flags in AGENTS.md).
-- **Local (`--local`)** — the user drops the APK into the repo's local-app folder; boot a local
-  emulator and verify there. Follow the **local-execution reference**
-  (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check → APK
-  present → toolchain probe → Node-version-manager false negatives → stop-and-ask on anything
-  missing.
+- **Local (`--local`)** — the user drops the APK into the repo's local-app folder (the kit creates
+  the folder + `.gitignore` entry on the first local run if missing); boot a local emulator and
+  verify there. Follow the **local-execution reference**
+  (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check (configure
+  the local block with the user if missing) → APK present → toolchain probe →
+  Node-version-manager false negatives → stop-and-ask on anything missing.
 
 Without `--local`, run only the new/updated scenario against BrowserStack (confirm the exact
 Maven/profile flags in `AGENTS.md`; illustrative default):
