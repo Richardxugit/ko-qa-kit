@@ -108,10 +108,12 @@ describe('anti-overengineering rules', () => {
     }
   });
 
-  it('coding-standards.mdc carries the spec style section', () => {
+  it('coding-standards.mdc stays lean — no spec-style or monorepo sections', () => {
+    // Spec style lives in ko-dev-kit's ko-feature (specs are authored there, not in QA repos);
+    // monorepo force_update rules belong to the product monorepo, not standalone QA repos.
     const content = fs.readFileSync(path.join(templateDir, 'rules', 'coding-standards.mdc'), 'utf-8');
-    expect(content).toContain('## Specs and docs (style)');
-    expect(content).toContain('Mermaid');
+    expect(content).not.toContain('## Specs and docs');
+    expect(content).not.toContain('force_update.txt');
   });
 });
 
