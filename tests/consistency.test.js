@@ -100,6 +100,33 @@ describe('command frontmatter', () => {
   });
 });
 
+describe('context budget', () => {
+  // Every char in an alwaysApply rule is paid on EVERY message of EVERY session.
+  it('alwaysApply rules stay within the per-turn budget', () => {
+    const rulesDir = path.join(templateDir, 'rules');
+    let total = 0;
+    const alwaysOn = [];
+    for (const f of fs.readdirSync(rulesDir).filter(f => f.endsWith('.mdc'))) {
+      const content = fs.readFileSync(path.join(rulesDir, f), 'utf-8');
+      if (/^alwaysApply:\s*true/m.test(content)) {
+        total += content.length;
+        alwaysOn.push(f);
+      }
+    }
+    expect(alwaysOn, 'only coding-standards should be alwaysApply').toEqual(['coding-standards.mdc']);
+    expect(total, `alwaysApply total ${total} chars exceeds 5,000-char budget`).toBeLessThanOrEqual(5000);
+  });
+
+  it('command bodies stay within the per-invocation budget', () => {
+    // Commands are injected whole when invoked — keep cores lean; detail lives in skill references.
+    const commandsDir = path.join(templateDir, 'commands');
+    for (const f of fs.readdirSync(commandsDir).filter(f => f.endsWith('.md'))) {
+      const size = fs.readFileSync(path.join(commandsDir, f), 'utf-8').length;
+      expect(size, `${f} core body ${size} chars exceeds 9,000-char budget — move detail into a skill's references/`).toBeLessThanOrEqual(9000);
+    }
+  });
+});
+
 describe('anti-overengineering rules', () => {
   it('coding-standards.mdc carries the Simplicity and Bug fixes sections', () => {
     const content = fs.readFileSync(path.join(templateDir, 'rules', 'coding-standards.mdc'), 'utf-8');
@@ -108,10 +135,12 @@ describe('anti-overengineering rules', () => {
     }
   });
 
-  it('coding-standards.mdc carries the spec style section', () => {
+  it('coding-standards.mdc stays lean — no spec-style or monorepo sections', () => {
+    // Spec style lives in ko-dev-kit's ko-feature (specs are authored there, not in QA repos);
+    // monorepo force_update rules belong to the product monorepo, not standalone QA repos.
     const content = fs.readFileSync(path.join(templateDir, 'rules', 'coding-standards.mdc'), 'utf-8');
-    expect(content).toContain('## Specs and docs (style)');
-    expect(content).toContain('Mermaid');
+    expect(content).not.toContain('## Specs and docs');
+    expect(content).not.toContain('force_update.txt');
   });
 });
 

@@ -51,10 +51,9 @@ You are a senior QA automation engineer specializing in end-to-end testing with 
 - Confirm tests pass consistently before reporting completion.
 - Report Allure results when available.
 
-## Superpowers & Caveman
+## Superpowers
 
 When available, integrate these into your workflow:
 - **`superpowers:systematic-debugging`** — for root-cause analysis of flaky or failing tests.
 - **`superpowers:test-driven-development`** — write failing scenario first, then implement steps/pages.
 - **`superpowers:verification-before-completion`** — confirm tests pass consistently before claiming fixed.
-- **`caveman`** — use for token-efficient responses when activated.
