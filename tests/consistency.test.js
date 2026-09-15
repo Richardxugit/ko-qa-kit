@@ -158,6 +158,19 @@ describe('anti-overengineering rules', () => {
       expect(content, `${agent} lost the mental-revert rule`).toContain('mentally revert');
     }
   });
+
+  it('drift-diff recipe lives in the skills and the debug path points to it', () => {
+    const dom = fs.readFileSync(path.join(templateDir, 'skills', 'dom-sight', 'SKILL.md'), 'utf-8');
+    expect(dom).toContain('Selector drift diff');
+    expect(dom).toContain('git log'); // git archaeology anchor
+    const mobile = fs.readFileSync(
+      path.join(templateDir, 'skills', 'mobile-browserstack-triage', 'SKILL.md'), 'utf-8');
+    expect(mobile).toContain('Diff before you edit');
+    const debuggerAgent = fs.readFileSync(path.join(templateDir, 'agents', 'e2e-debugger.md'), 'utf-8');
+    expect(debuggerAgent).toContain('drift diff');
+    const heal = fs.readFileSync(path.join(templateDir, 'commands', 'ko-e2e-heal.md'), 'utf-8');
+    expect(heal).toContain('drift-diff');
+  });
 });
 
 describe('cross-kit reference lint', () => {

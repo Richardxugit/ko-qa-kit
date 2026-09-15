@@ -31,7 +31,7 @@ The orchestrator states the mode at dispatch:
 
 | Class | Signature | Fix direction |
 |---|---|---|
-| **Selector** | locator resolves to 0 or >1 nodes; markup churn | repair the page object's `elements` entry from live-DOM evidence |
+| **Selector** | locator resolves to 0 or >1 nodes; markup churn | repair the page object's `elements` entry via the drift diff (old value from git history vs live candidates — see `dom-sight`), never trial-and-error |
 | **Timing** | acts/asserts before the app settled; passes headed, fails headless | web-first auto-retrying assertion; wait on state, never time |
 | **Assertion** | expectation stale vs changed requirement | confirm the new expected behavior with the caller before editing |
 | **Environment** | wrong env/locale/RUN_MODE, WireMock mapping missing, base URL drift | fix config/mapping, not the test logic |

@@ -37,6 +37,7 @@ If the BrowserStack MCP is unreachable or not configured, degrade to (2) and (3)
 
 ## Locator fixes
 
+- **Diff before you edit — three anchors.** (1) `git log -p` on the `*Constants.java` field shows the locator's previous value (what it was); (2) the scenario/step intent names the element's text or `content-desc`; (3) search the BrowserStack page-source XML for nearest candidates — same text/`content-desc`, or a resource-id sharing a token with the old one. Old vs new side by side: renamed id? moved container? Then make the one targeted update below.
 - Never invent a selector that isn't grounded in observed evidence — BrowserStack page source/XML, an accessibility snapshot, or a screenshot.
 - Fix priority order: Accessibility ID → `_ANDROID_ID` (only when a stable resource-id is observed) → XPath (`_ANDROID_XPATH` / `_IOS_XPATH`) as a last resort.
 - This stack has no selector-override file to regenerate — `*Constants.java` locator fields *are* the fix. Update them directly, keeping Android/iOS pairs on the same base token name.
