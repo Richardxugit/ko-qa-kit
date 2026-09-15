@@ -25,7 +25,7 @@ If none of the three apply, use the most recent failing run (last report/trace u
 
 - Run the target in isolation with a trace: `npx playwright test --grep "<scenario>" --trace on` (or the repo runner with the scenario's tag; or open the CI artifact: `npx playwright show-trace <trace.zip>`).
 - **Flaky (intermittent)?** Establish the failure rate first: `--repeat-each 10 --workers 1`, then again with parallel workers. Fails only under parallelism → suspect shared state/ordering. Record the before-fix rate so step 5 can prove the fix.
-- Inspect the trace: DOM snapshots, network, console, the failing action's timeline. For live-DOM questions, use the `dom-sight` skill (MCP snapshot or one-off locator probes) — never guess selectors.
+- Inspect the trace: DOM snapshots, network, console, the failing action's timeline. For live-DOM questions, use the `dom-sight` skill (MCP snapshot or one-off locator probes) — never guess selectors. Selector drift → run the skill's drift-diff recipe (old value from git history vs live candidates) before proposing a repair.
 
 ## 3. Triage before healing (important)
 

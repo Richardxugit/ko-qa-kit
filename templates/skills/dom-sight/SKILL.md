@@ -48,6 +48,19 @@ When you just need to answer "does this selector match, and what's actually ther
   `await page.locator(sel).count()` / `await page.locator(container).innerHTML()` — prints the truth about one selector, then gets deleted.
 - **Trace:** every failed run with `--trace on` contains full DOM snapshots per action — `npx playwright show-trace <trace.zip>` and inspect the DOM at the failing step. This is Tier 3's answer for auth-gated states, since the trace was recorded *with* the test's real session.
 
+## Selector drift diff — old vs new, not trial and error
+
+When an EXISTING selector breaks (drift, not a new screen), don't probe blind. Three anchors pin what changed:
+
+1. **What it was** — git archaeology on the page object: `git log -p -- src/pages/<Page>.ts` (or `git log -S '<old-selector>'`) shows the selector's previous values and when they moved. The failing step's business language ("I submit the form") names the element's role/text.
+2. **What the app shows now** — the trace's DOM snapshot at the failing action (the only sight for auth-gated states), or a live probe:
+   - partial-token search: `await page.locator('[data-testid*="submit"]').count()` — drift usually renames, not removes
+   - role/text search from the step's intent: `getByRole('button', { name: /submit/i })`
+   - container dump: `innerHTML` (or an `evaluate` listing interactive descendants — tag, role, text, `data-testid`) of the nearest stable parent, as a compact before/after view
+3. **Compare, then commit** — old attributes vs live candidates: renamed `data-testid`? moved container? role changed? Pick ONE replacement per the priority order. Zero or multiple plausible candidates → present alternatives with evidence and ask; never silently pick.
+
+Feed the outcome into the debug history (see `e2e-debugger`): the same element drifting twice means the app needs a `data-testid`, not a third CSS repair.
+
 ## Rules (all tiers)
 
 - **One selector per element.** Pick the best candidate and commit to it — never fallback chains (`a, b, c`), never XPath.
