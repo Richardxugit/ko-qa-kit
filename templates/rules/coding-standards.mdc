@@ -5,23 +5,22 @@ alwaysApply: true
 
 # Coding Standards
 
-Baseline conventions for every file in this repository, regardless of stack.
-Archetype-specific rules in `.cursor/rules/` extend these.
+Archetype rules in `.cursor/rules/` extend this baseline.
 
 ## General
 
 - Match the surrounding code: naming, structure, formatting, and idioms already in the file.
-- Prefer clarity over cleverness. Smaller, focused units beat large multi-purpose ones.
-- Don't add a dependency when the standard library or an existing utility already does the job.
-- Read before you write: look for an existing function, component, or pattern to reuse before creating a new one.
+- Prefer clarity over cleverness; small focused units beat large multi-purpose ones.
+- Reuse before you write — an existing function, component, utility, or the standard library — before creating anything new. If you propose a different approach than the repo's established one, justify why the existing one doesn't work first.
+- Follow the file's established definition style (e.g. `const` arrow vs `function` in TS, method conventions in Java); never mix.
 
 ## TypeScript / JavaScript
 
 - TypeScript `strict` mode. Avoid `any` — prefer `unknown` + narrowing; justify any exception with a comment.
-- Type the public surface of every module (exported functions, props, return types).
+- Type the public surface of every module (exports, props, return types).
 - `const` by default; `let` only when reassigned; never `var`.
 - Prefer pure functions and immutable data; avoid shared mutable state.
-- Use `async/await` over raw promise chains, and always handle rejections.
+- Use `async/await` over raw promise chains; always handle rejections.
 - No `console.log` in committed code — use the project's logger or remove it.
 
 ## Naming
@@ -29,6 +28,7 @@ Archetype-specific rules in `.cursor/rules/` extend these.
 - `camelCase` for variables/functions, `PascalCase` for types/classes/components, `UPPER_SNAKE` for constants.
 - Names describe intent, not type (`users`, not `userArray`).
 - Booleans read as predicates (`isLoading`, `hasError`, `canSubmit`).
+- File names: short and clear — what it IS, not all it does (`login.steps.ts`, not `login-with-2fa-retry.steps.ts`).
 
 ## Errors
 
@@ -43,34 +43,34 @@ Archetype-specific rules in `.cursor/rules/` extend these.
 
 ## Security
 
-- Never commit secrets — no API keys, tokens, or passwords anywhere, including test fixtures. Read config from environment / a config service (e.g. SSM Parameter Store references).
+- Never commit secrets — no keys, tokens, or passwords anywhere, including tests. Read config from environment / config service (SSM).
 - Validate and sanitize external input at the boundary.
 - Don't read or log credential files (`.env`, `*.pem`, `*.key`, credentials, tokens).
-- Never commit decrypted `.env.secret` files; use the repo's encryption script (e.g. `scripts/crypt.js`, Ansible Vault) for local encrypt/decrypt.
+- Never commit decrypted `.env.secret`; use the repo's encryption script (`scripts/crypt.js` / Ansible Vault).
 
 ## Commits
 
-- **Only commit when working in a git worktree.** If not in a worktree, leave changes uncommitted — the user will commit them.
+- **Only commit in a git worktree.** Otherwise leave changes uncommitted — the user commits.
 - **Commit format** — check the branch name for a ticket pattern (e.g. `CON-2000`, `OXP-2000`, `KO-1234`):
   - If ticket found: `type: TICKET short message` (e.g. `feat: CON-2000 add cart page`)
   - If no ticket in branch: `type: short message` (e.g. `fix: correct price display`)
-- **Under 10 words**, concise and specific. **Types:** `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, `build`, `revert`.
+- **Under 10 words.** **Types:** `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, `build`, `revert`.
 - **Before committing:** if the repo has a Husky/commitlint hook, run the commit through it; if rejected, fix the format.
 - One logical change per commit; keep diffs reviewable.
 
 ## Superpowers integration
 
-When the superpowers skills are installed, the `/ko-*` commands invoke them for the matching phase (brainstorming, planning, TDD, debugging, review). **If not installed, the kit works fully standalone** — use Cursor's built-in plan mode and the `/ko-*` commands directly.
+If the superpowers skills are installed, `/ko-*` commands invoke them per phase (brainstorming, planning, TDD, review); if not, the kit works standalone with Cursor's plan mode.
 
-**Spec/plan file location override:** save all specs and plans to `.cursor/specs/` (`YYYY-MM-DD-<topic>-design.md` / `-plan.md`) — NOT the superpowers default `docs/superpowers/` paths. This is a user preference that overrides the superpowers default.
+**Spec/plan file location override:** save all specs and plans to `.cursor/specs/` (`YYYY-MM-DD-<topic>-design.md` / `-plan.md`) — NOT the superpowers default `docs/superpowers/` paths (user preference, overrides superpowers).
 
 ## Simplicity (hard rules)
 
 - Implement only what the current requirement explicitly asks for. No speculative features, no "while we're here" refactors (YAGNI).
-- Defensive code is allowed ONLY for failure modes that have actually been observed (a bug report, a log, a failing test). Do not write guards for theoretical edge cases.
-- If an error state can be resolved by the user retrying/refreshing, do NOT build automatic recovery logic. Surface the error and ask first.
-- Every line in a diff must answer: "which test or requirement breaks if I delete this?" If the answer is "none", delete it.
-- When proposing a solution, present TWO options — the minimal fix and the thorough fix, with the cost/risk of each — and let the user choose. Do not default to the thorough one.
+- Defensive code only for observed failure modes (bug report, log, failing test) — never guards for theoretical cases.
+- If the user can retry/refresh past an error, do NOT build auto-recovery — surface it and ask first.
+- Every change must answer: "which requirement or test breaks if I delete this?" — if none, cut it. When presenting a diff or plan, state what each change is FOR; unlabeled work is out of scope.
+- Offer TWO options — minimal and thorough, with cost/risk of each — and let the user choose; never default to thorough.
 
 ## Bug fixes (hard rules)
 

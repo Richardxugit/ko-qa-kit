@@ -142,6 +142,22 @@ describe('anti-overengineering rules', () => {
     expect(content).not.toContain('## Specs and docs');
     expect(content).not.toContain('force_update.txt');
   });
+
+  it('coding-standards carries convention hard rules', () => {
+    const standards = fs.readFileSync(path.join(templateDir, 'rules', 'coding-standards.mdc'), 'utf-8');
+    expect(standards).toContain('justify why the existing one'); // reuse-or-justify
+    expect(standards).toContain('what each change is FOR'); // no orphan changes
+    expect(standards).toContain('File names: short and clear'); // naming budget for files
+    expect(standards).toContain('definition style'); // match the file's established style, never mix
+  });
+
+  it('authoring agents carry the test-quality bar', () => {
+    for (const agent of ['qa-automation-engineer.md', 'test-generator.md']) {
+      const content = fs.readFileSync(path.join(templateDir, 'agents', agent), 'utf-8');
+      expect(content, `${agent} lost the would-fail check`).toContain('Would-fail check');
+      expect(content, `${agent} lost the mental-revert rule`).toContain('mentally revert');
+    }
+  });
 });
 
 describe('cross-kit reference lint', () => {
