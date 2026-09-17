@@ -272,6 +272,7 @@ describe('kit-wide staleness lint (dev-kit slice)', () => {
     { file: 'commands/ko-e2e-test.md', token: 'step registry' },
     { file: 'commands/ko-e2e-heal.md', token: 'e2e-debugger' },
     { file: 'commands/ko-e2e-verify.md', token: 'impact-map' },
+    { file: 'commands/ko-e2e-verify.md', token: 'resolve-impact.mjs' },
     { file: 'commands/ko-mobile-test.md', token: 'BrowserStack' },
     { file: 'commands/ko-mobile-heal.md', token: 'test-debugger' },
     { file: 'agents/qa-automation-engineer.md', token: 'pwHelper' },

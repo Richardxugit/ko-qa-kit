@@ -39,6 +39,23 @@ If the resolved set is empty (docs-only PR, unmatchable text): report `no testab
 
 ## 2. MAP — changedAreas → domain tags
 
+**Resolver delegation (when a changed-file list exists, i.e. PR mode):** if the repo has
+`scripts/resolve-impact.mjs`, run it instead of resolving inline:
+
+```
+node scripts/resolve-impact.mjs --files <f1,f2,...> [--consumers <path>] [--level <level>]
+```
+
+It prints one JSON object to stdout —
+`{ "tags": [...], "gaps": [...], "unknownApps": [...], "dropped": [...], "collapsed": bool, "scenarios": [{ "journey", "name", "shape" }] }` —
+with exit codes `0` = resolved with coverage, `2` = gaps/unknowns present, `1` = error.
+The script implements the same rules as the inline steps below (which remain the spec of
+record), deterministically and unit-tested. When it ran, skip the inline MAP lookups and the
+`journeys/*.yml` search in step 3 — its `tags` are the tag expression, its `scenarios` are
+the run list, its `gaps` are the gapList — and go straight to the run-plan display. Treat
+`unknownApps` as coverage findings (same as inline rule). Ticket/text modes without a file
+list still resolve inline.
+
 - `apps[]` → look up `impact-map.json` (app name → domain tag, e.g. `"checkout-ui" → "@checkout"`). An app missing from the map is itself a coverage finding — record it and tell the user to add the entry.
 - `packages[]` → resolve consumers, then map each consumer app through `impact-map.json`. Consumer sources, in order:
   1. Committed `packages-consumers.json` in this repo, if present
@@ -47,6 +64,9 @@ If the resolved set is empty (docs-only PR, unmatchable text): report `no testab
 - Union all tags, dedupe, sort. Result: `TAGS` expression like `@account or @auth or @checkout`.
 
 ## 3. SELECT — tags → scenarios, with GAP detection
+
+- If the resolver script ran in step 2, its `scenarios` and `gaps` replace this step's
+  search — skip to the run-plan display below.
 
 - Search `journeys/*.yml` for scenarios carrying any of `TAGS` at or above `--level`. Collect the run list.
 - **GAP check:** any resolved tag with ZERO matching scenarios goes into `gapList`. A gap is not a failure and never silently passes — it is reported loudly in step 6.
