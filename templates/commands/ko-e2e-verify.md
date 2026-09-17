@@ -1,7 +1,7 @@
 ---
 name: ko-e2e-verify
 description: Verify a change against the journey pool — resolve a PR link, Jira ticket, or text description into impacted test domains (impact-map + package consumer graph), check coverage, run the matching journeys, and report PASS / FAIL (classified) / GAP
-args: "<pr-url | ticket | text description> [--level p0|p1] [--env <name>] [--base-url <url>]"
+args: "<pr-url | ticket | text description> [--env <name>] [--base-url <url>]"
 skills: [playwright-bdd, step-registry]
 rules: [e2e-playwright]
 ---
@@ -18,7 +18,6 @@ Read the `playwright-bdd` and `step-registry` skills first, and follow `.cursor/
   - PR URL — `https://github.com/<org>/<repo>/pull/<n>` (highest confidence: file-level evidence)
   - Jira ticket — e.g. `DAV-165` (medium: resolved via linked PRs, falls back to text mode)
   - Text description — e.g. `"wishlist share flow"` (lowest: inferred, always confirmed)
-- `--level p0|p1` — journey priority ceiling, default `p0`
 - `--env <name>` — target environment from the repo's env config, default per `AGENTS.md`
 - `--base-url <url>` — point at a PR preview / ephemeral deployment instead of a named env
 
@@ -43,7 +42,7 @@ If the resolved set is empty (docs-only PR, unmatchable text): report `no testab
 `scripts/resolve-impact.mjs`, run it instead of resolving inline:
 
 ```
-node scripts/resolve-impact.mjs --files <f1,f2,...> [--consumers <path>] [--level <level>]
+node scripts/resolve-impact.mjs --files <f1,f2,...> [--consumers <path>]
 ```
 
 It prints one JSON object to stdout —
@@ -60,7 +59,7 @@ list still resolve inline.
 - `packages[]` → resolve consumers, then map each consumer app through `impact-map.json`. Consumer sources, in order:
   1. Committed `packages-consumers.json` in this repo, if present
   2. Otherwise fetch fresh: for each app, `gh api repos/<ui-repo>/contents/apps/<app>/package.json?ref=<headSHA>` and parse `@kosmos/*` (scope per `impact-map.json`) dependencies. For text/ticket mode without a head SHA, use the default branch.
-- **Wide-blast collapse:** if a package has **more than 5** consumer apps (e.g. `Theme`, `Common`), don't enumerate — collapse the whole run to the `@regression` tag at the requested `--level`.
+- **Wide-blast collapse:** if a package has **more than 5** consumer apps (e.g. `Theme`, `Common`), don't enumerate — collapse the whole run to the `@regression` tag.
 - Union all tags, dedupe, sort. Result: `TAGS` expression like `@account or @auth or @checkout`.
 
 ## 3. SELECT — tags → scenarios, with GAP detection
@@ -68,13 +67,13 @@ list still resolve inline.
 - If the resolver script ran in step 2, its `scenarios` and `gaps` replace this step's
   search — skip to the run-plan display below.
 
-- Search `journeys/*.yml` for scenarios carrying any of `TAGS` at or above `--level`. Collect the run list.
+- Search `journeys/*.yml` for scenarios carrying any of `TAGS` — select ALL of them (no priority ceiling). Collect the run list.
 - **GAP check:** any resolved tag with ZERO matching scenarios goes into `gapList`. A gap is not a failure and never silently passes — it is reported loudly in step 6.
 - Show the run plan: resolved mapping, tag expression, scenario count per tag, env/base-url, and the gapList if non-empty. **Text/ticket mode: stop here for confirmation. PR mode: proceed.**
 
 ## 4. RUN
 
-- Invoke the repo runner alias from `AGENTS.md` with the tag expression, level, and env (e.g. `./scripts/run-tests.sh -e <env> -t "<TAGS>"` — repo alias wins). `--base-url` overrides the env's baseUrl when given.
+- Invoke the repo runner alias from `AGENTS.md` with the tag expression and env (e.g. `./scripts/run-tests.sh -e <env> -t "<TAGS>"` — repo alias wins). `--base-url` overrides the env's baseUrl when given.
 - Run once. Do not retry the suite hoping for green — a red result is data, not bad luck.
 
 ## 5. REPORT — three states
