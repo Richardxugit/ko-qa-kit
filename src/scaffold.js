@@ -16,6 +16,7 @@ export const ARCHETYPE_RESOURCES = {
   commands: {
     'ko-e2e-test': ['e2e-playwright'],
     'ko-e2e-heal': ['e2e-playwright'],
+    'ko-e2e-verify': ['e2e-playwright'],
     'ko-mobile-test': ['mobile-appium'],
     'ko-mobile-heal': ['mobile-appium'],
   },
