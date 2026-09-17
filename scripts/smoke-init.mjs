@@ -18,7 +18,7 @@ const FIXTURES = [
   {
     name: 'e2e-playwright',
     files: { 'package.json': { devDependencies: { '@playwright/test': '^1.40.0', 'playwright-bdd': '^7.0.0' } } },
-    expect: ['.cursor/rules/e2e-playwright.mdc', '.cursor/rules/coding-standards.mdc', '.cursor/commands/ko-e2e-test.md', '.cursor/commands/ko-e2e-heal.md', '.cursor/skills/playwright-bdd/SKILL.md', '.cursor/agents/qa-automation-engineer.md'],
+    expect: ['.cursor/rules/e2e-playwright.mdc', '.cursor/rules/coding-standards.mdc', '.cursor/commands/ko-e2e-test.md', '.cursor/commands/ko-e2e-heal.md', '.cursor/commands/ko-e2e-verify.md', '.cursor/skills/playwright-bdd/SKILL.md', '.cursor/agents/qa-automation-engineer.md'],
     reject: ['.cursor/commands/ko-mobile-test.md', '.cursor/rules/mobile-appium.mdc', '.cursor/skills/mobile-browserstack-triage/SKILL.md'],
     mcp: ['playwright'],
   },

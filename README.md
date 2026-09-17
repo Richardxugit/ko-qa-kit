@@ -61,7 +61,7 @@ ko-qa-kit export command ko-e2e-test ./out        # export a self-contained reso
 
 | Archetype | Rules | Skills | Commands | Agents |
 |---|---|---|---|---|
-| `e2e-playwright` | `e2e-playwright.mdc` | `playwright-bdd`, `bdd-authoring`, `step-registry`, `dom-sight` | `ko-e2e-test`, `ko-e2e-heal` | `qa-automation-engineer`, `e2e-debugger` |
+| `e2e-playwright` | `e2e-playwright.mdc` | `playwright-bdd`, `bdd-authoring`, `step-registry`, `dom-sight` | `ko-e2e-test`, `ko-e2e-heal`, `ko-e2e-verify` | `qa-automation-engineer`, `e2e-debugger` |
 | `mobile-appium` | `mobile-appium.mdc` | `mobile-browserstack-triage` | `ko-mobile-test`, `ko-mobile-heal` | `test-generator`, `test-debugger` |
 | all | `coding-standards.mdc` | — | — | — |
 
