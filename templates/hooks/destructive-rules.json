@@ -1,0 +1,137 @@
+{
+  "_readme": [
+    "Policy for safety-guard.cjs. Edit THIS file to change what is blocked —",
+    "no JavaScript required. Detection lives in the .cjs; which operations your",
+    "team protects is policy, and policy belongs in data.",
+    "your team's equivalents (keep the base name only — `test-results`,",
+    "Each rule: name (appears in the message), pattern (JS regex source, matched",
+    "against the whole shell command), flags (default 'i'), action, reason, and",
+    "for deny rules a safe alternative the agent can recover with.",
+    "",
+    "  action: \"deny\" — never legitimate from an agent. Hard block.",
+    "  action: \"ask\"  — legitimate work that must not happen silently. Prompts you.",
+    "",
+    "The deny/ask split is the whole design. A guard that hard-blocks routine work",
+    "gets switched off, and a switched-off guard protects nothing. Deny what is",
+    "never right; ask about what is sometimes right.",
+    "",
+    "exemptWhenSafeDelete: true — the rule is skipped when every path the command",
+    "targets has a basename in safeDeleteTargets. This is what keeps",
+    "`rm -rf node_modules` from being the false positive that gets the hook deleted.",
+    "",
+    "PAIRED FILE: this file and safety-guard.cjs ship together. The hook fails",
+    "open (with a warning) when the policy is missing, so installing one without",
+    "the other leaves the guard inert. `ko-dev-kit init` copies both.",
+    "This file is merge-protected on kit updates: your edits are kept and the",
+    "kit's new version lands beside it as destructive-rules.json.kit-update."
+  ],
+  "safeDeleteTargets": [
+    "node_modules",
+    "dist",
+    "build",
+    "target",
+    "coverage",
+    "test-results",
+    "playwright-report",
+    "blob-report",
+    "allure-results",
+    ".next",
+    "out",
+    "tmp",
+    "temp"
+  ],
+  "rules": [
+    {
+      "name": "force-push",
+      "pattern": "\\bgit\\s+push\\b[^|;&]*\\s--force\\b(?!-with-lease)",
+      "action": "deny",
+      "reason": "force push rewrites remote history",
+      "alternative": "use --force-with-lease if a force push is truly intended"
+    },
+    {
+      "name": "force-push-short-flag",
+      "pattern": "\\bgit\\s+push\\b[^|;&]*\\s-f\\b",
+      "action": "deny",
+      "reason": "force push rewrites remote history",
+      "alternative": "use --force-with-lease if a force push is truly intended"
+    },
+    {
+      "name": "force-push-with-lease",
+      "pattern": "\\bgit\\s+push\\b[^|;&]*--force-with-lease\\b",
+      "action": "ask",
+      "reason": "a lease-guarded force push still rewrites the remote branch — it must not happen silently",
+      "alternative": "confirm the user intends to rewrite the remote branch"
+    },
+    {
+      "name": "reset-hard",
+      "pattern": "\\bgit\\s+reset\\s+--hard\\b",
+      "action": "deny",
+      "reason": "reset --hard discards uncommitted work irreversibly",
+      "alternative": "git stash (or commit to a scratch branch) keeps the work recoverable"
+    },
+    {
+      "name": "clean-force",
+      "pattern": "\\bgit\\s+clean\\s+-[a-zA-Z]*f",
+      "action": "deny",
+      "reason": "git clean -f deletes untracked files irreversibly",
+      "alternative": "git stash -u, or list targets first with git clean -n"
+    },
+    {
+      "name": "checkout-discard",
+      "pattern": "\\bgit\\s+checkout\\s+--",
+      "action": "deny",
+      "reason": "checkout -- discards uncommitted changes irreversibly",
+      "alternative": "git stash keeps the work recoverable"
+    },
+    {
+      "name": "recursive-force-delete",
+      "pattern": "\\brm\\s+-[a-zA-Z]*r[a-zA-Z]*f",
+      "action": "deny",
+      "exemptWhenSafeDelete": true,
+      "reason": "rm -rf against a broad target can wipe the workspace",
+      "alternative": "delete a specific subdirectory, and prefer moving to /tmp over deleting"
+    },
+    {
+      "name": "publish-from-shell",
+      "pattern": "\\b(npm|pnpm|yarn)\\s+publish\\b",
+      "action": "deny",
+      "reason": "publishing from a local shell bypasses release checks",
+      "alternative": "publish via the repo release workflow / CI"
+    },
+    {
+      "name": "sudo-delete",
+      "pattern": "\\bsudo\\s+(?:rm|dd|mkfs|chown|chmod)\\b",
+      "action": "deny",
+      "reason": "privileged filesystem operations are out of scope for an agent",
+      "alternative": "ask the user to run it themselves if they are sure"
+    },
+    {
+      "name": "raw-device-write",
+      "pattern": "\\bdd\\s+[^|;&]*\\bof=/dev/",
+      "action": "deny",
+      "reason": "writing to a raw device destroys a disk — there is no recovery",
+      "alternative": "none from an agent; the user runs this by hand"
+    },
+    {
+      "name": "chmod-world-writable",
+      "pattern": "\\bchmod\\s+(?:-[a-zA-Z]+\\s+)*777\\b",
+      "action": "deny",
+      "reason": "0777 makes the path world-writable",
+      "alternative": "grant the narrowest mode that works (644 for files, 755 for directories)"
+    },
+    {
+      "name": "remote-script-execution",
+      "pattern": "\\b(?:curl|wget)\\b[^|]*\\|\\s*(?:sudo\\s+)?(?:ba|z)?sh\\b",
+      "action": "deny",
+      "reason": "piping a downloaded script straight into a shell runs unreviewed code",
+      "alternative": "download it, read it, then run it"
+    },
+    {
+      "name": "git-history-rewrite",
+      "pattern": "\\bgit\\s+(?:filter-branch|filter-repo)\\b|\\bgit\\s+push\\b[^|;&]*--mirror\\b",
+      "action": "deny",
+      "reason": "rewriting published history breaks every clone",
+      "alternative": "coordinate history changes with the team out of band"
+    }
+  ]
+}

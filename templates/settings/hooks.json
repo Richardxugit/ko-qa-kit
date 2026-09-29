@@ -2,13 +2,28 @@
   "version": 1,
   "hooks": {
     "beforeReadFile": [
-      { "command": "node .cursor/hooks/privacy-block.cjs" }
+      {
+        "command": "node .cursor/hooks/privacy-block.cjs"
+      }
     ],
     "beforeShellExecution": [
-      { "command": "node .cursor/hooks/privacy-block.cjs" }
+      {
+        "command": "node .cursor/hooks/privacy-block.cjs"
+      },
+      {
+        "command": "node .cursor/hooks/safety-guard.cjs",
+        "timeout": 5
+      }
     ],
     "beforeMCPExecution": [
-      { "command": "node .cursor/hooks/privacy-block.cjs" }
+      {
+        "command": "node .cursor/hooks/privacy-block.cjs"
+      }
+    ],
+    "beforeTabFileRead": [
+      {
+        "command": "node .cursor/hooks/privacy-block.cjs"
+      }
     ]
   }
 }

@@ -86,6 +86,76 @@ describe('scaffoldProject', () => {
     expect(Object.keys(mcp.mcpServers).sort()).toEqual(['browserstack', 'playwright']);
   });
 
+  it('installs hook scripts AND the hook policy data file', async () => {
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    expect(await fs.pathExists(path.join(tmpDir, '.cursor/hooks/safety-guard.cjs'))).toBe(true);
+    expect(await fs.pathExists(path.join(tmpDir, '.cursor/hooks/privacy-block.cjs'))).toBe(true);
+    expect(await fs.pathExists(path.join(tmpDir, '.cursor/hooks/destructive-rules.json'))).toBe(true);
+  });
+
+  it('hook policy JSON is merge-protected like rules; hook scripts stay kit-managed', async () => {
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const policyPath = path.join(tmpDir, '.cursor/hooks/destructive-rules.json');
+    const guardPath = path.join(tmpDir, '.cursor/hooks/safety-guard.cjs');
+    const manifest = await writeManifest(tmpDir, MANIFEST_REL_PATH, {
+      kitVersion: '0.0.0', archetypes: ['e2e-playwright'],
+      files: ['.cursor/hooks/destructive-rules.json', '.cursor/hooks/safety-guard.cjs'],
+    });
+    await fs.writeFile(policyPath, '{"team":"customized"}\n');
+    await fs.writeFile(guardPath, '// my local tweak\n');
+    const result = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir, { manifest });
+    expect(await fs.readFile(policyPath, 'utf-8')).toBe('{"team":"customized"}\n');
+    expect(await fs.pathExists(`${policyPath}.kit-update`)).toBe(true);
+    expect(result.mergeNeeded).toContain('.cursor/hooks/destructive-rules.json');
+    expect(await fs.readFile(guardPath, 'utf-8')).not.toBe('// my local tweak\n');
+    expect(result.updated).toContain('.cursor/hooks/safety-guard.cjs');
+  });
+
+  it('hooks.json MERGES: existing install gains NEW kit wiring, user entries preserved', async () => {
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const hjPath = path.join(tmpDir, '.cursor/hooks.json');
+    const user = await fs.readJson(hjPath);
+    // simulate an install from before safety-guard existed + a user's own hook
+    user.hooks.beforeShellExecution = user.hooks.beforeShellExecution
+      .filter((e) => !e.command.includes('safety-guard'));
+    user.hooks.beforeShellExecution.push({ command: 'node .cursor/hooks/my-own-guard.cjs' });
+    await fs.writeJson(hjPath, user);
+
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const merged = await fs.readJson(hjPath);
+    const shellCmds = merged.hooks.beforeShellExecution.map((e) => e.command);
+    expect(shellCmds.some((c) => c.includes('safety-guard.cjs'))).toBe(true);
+    expect(shellCmds).toContain('node .cursor/hooks/my-own-guard.cjs');
+  });
+
+  it('hooks.json merge syncs kit-owned entries to template values', async () => {
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const hjPath = path.join(tmpDir, '.cursor/hooks.json');
+    const user = await fs.readJson(hjPath);
+    const entry = user.hooks.beforeShellExecution.find((e) => e.command.includes('safety-guard'));
+    entry.timeout = 99; // drift
+    await fs.writeJson(hjPath, user);
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const merged = await fs.readJson(hjPath);
+    const fixed = merged.hooks.beforeShellExecution.find((e) => e.command.includes('safety-guard'));
+    expect(fixed.timeout).toBe(5);
+  });
+
+  it('hooks.json merge leaves an unparseable file untouched', async () => {
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const hjPath = path.join(tmpDir, '.cursor/hooks.json');
+    await fs.writeFile(hjPath, 'not json {');
+    const result = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    expect(await fs.readFile(hjPath, 'utf-8')).toBe('not json {');
+    expect(result.skipped).toContain('.cursor/hooks.json');
+  });
+
+  it('hooks.json merge is a no-op when nothing changed', async () => {
+    await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    const result = await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
+    expect(result.updated).not.toContain('.cursor/hooks.json');
+  });
+
   it('mcp.json is user-protected (never overwritten)', async () => {
     await scaffoldProject(tmpDir, ['e2e-playwright'], templateDir);
     const first = await fs.readJson(path.join(tmpDir, '.cursor', 'mcp.json'));

@@ -53,9 +53,18 @@ ko-qa-kit export command ko-e2e-test ./out        # export a self-contained reso
 | Commands / agents / skills | `.cursor/commands|agents|skills/` | kit-managed (overwritten on re-init) |
 | Rules | `.cursor/rules/*.mdc` | **merge-protected**: user edits are kept; the kit version lands as `<rule>.mdc.kit-update` |
 | MCP servers | `.cursor/mcp.json` | user-protected (generated per archetype set: Playwright MCP for e2e, BrowserStack MCP for mobile) |
-| `cli.json`, `hooks.json` | `.cursor/` | user-protected |
-| Hook script | `.cursor/hooks/privacy-block.cjs` | kit-managed |
+| `cli.json` | `.cursor/` | user-protected |
+| `hooks.json` | `.cursor/` | **merged on re-init**: kit-owned entries sync to the template (new wiring lands automatically); your own entries are kept |
+| Hook scripts | `.cursor/hooks/*.cjs` | kit-managed |
+| Hook policy | `.cursor/hooks/destructive-rules.json` | merge-protected (team-editable) |
 | `AGENTS.md` | repo root | user-protected |
+
+**Hooks**: `privacy-block` denies reads/shell/MCP/Tab reads touching likely-secret files (`.env`, keys,
+credentials). `safety-guard` guards destructive shell commands — **what** it blocks is policy and lives in
+`.cursor/hooks/destructive-rules.json` (deny / ask tiers, an ask tier that warns on `--force-with-lease`,
+and a `safeDeleteTargets` exemption list covering `node_modules`, `test-results`, `playwright-report`,
+`allure-results`, `target`, `dist`, `build`, `coverage`): edit the JSON to change the policy, no JavaScript
+required. The guard fails open WITH a visible warning if its policy file goes missing.
 
 ## Resource matrix
 
