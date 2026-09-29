@@ -24,6 +24,18 @@
       {
         "command": "node .cursor/hooks/privacy-block.cjs"
       }
+    ],
+    "postToolUse": [
+      {
+        "command": "node .cursor/hooks/edit-lint.cjs",
+        "matcher": "Write",
+        "timeout": 10
+      },
+      {
+        "command": "node .cursor/hooks/grep-negative.cjs",
+        "matcher": "Grep",
+        "timeout": 5
+      }
     ]
   }
 }
