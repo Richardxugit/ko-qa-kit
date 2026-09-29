@@ -5,13 +5,11 @@ alwaysApply: true
 
 # Coding Standards
 
-Archetype rules in `.cursor/rules/` extend this baseline.
-
 ## General
 
-- Match the surrounding code: naming, structure, formatting, and idioms already in the file.
-- Prefer clarity over cleverness; small focused units beat large multi-purpose ones.
-- Reuse before you write — an existing function, component, utility, or the standard library — before creating anything new. If you propose a different approach than the repo's established one, justify why the existing one doesn't work first.
+- Match the surrounding code: naming, structure, formatting, idioms.
+- Prefer clarity over cleverness; small focused units over large multi-purpose ones.
+- Reuse before you write — an existing function, component, utility, or the standard library. Proposing a different approach than the repo's established one: justify why the existing one doesn't work first.
 - Follow the file's established definition style (e.g. `const` arrow vs `function` in TS, method conventions in Java); never mix.
 
 ## TypeScript / JavaScript
@@ -21,7 +19,7 @@ Archetype rules in `.cursor/rules/` extend this baseline.
 - `const` by default; `let` only when reassigned; never `var`.
 - Prefer pure functions and immutable data; avoid shared mutable state.
 - Use `async/await` over raw promise chains; always handle rejections.
-- No `console.log` in committed code — use the project's logger or remove it.
+- No `console.log` in committed code — use the project logger.
 
 ## Naming
 
@@ -46,7 +44,7 @@ Archetype rules in `.cursor/rules/` extend this baseline.
 - Never commit secrets — no keys, tokens, or passwords anywhere, including tests. Read config from environment / config service (SSM).
 - Validate and sanitize external input at the boundary.
 - Don't read or log credential files (`.env`, `*.pem`, `*.key`, credentials, tokens).
-- Never commit decrypted `.env.secret`; use the repo's encryption script (`scripts/crypt.js` / Ansible Vault).
+- Never commit decrypted `.env.secret`; use the repo's encryption script.
 
 ## Commits
 
@@ -55,25 +53,31 @@ Archetype rules in `.cursor/rules/` extend this baseline.
   - If ticket found: `type: TICKET short message` (e.g. `feat: CON-2000 add cart page`)
   - If no ticket in branch: `type: short message` (e.g. `fix: correct price display`)
 - **Under 10 words.** **Types:** `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, `build`, `revert`.
-- **Before committing:** if the repo has a Husky/commitlint hook, run the commit through it; if rejected, fix the format.
+- **Before committing:** run the repo's Husky/commitlint hook if present; fix the format if rejected.
 - One logical change per commit; keep diffs reviewable.
 
 ## Superpowers integration
 
-If the superpowers skills are installed, `/ko-*` commands invoke them per phase (brainstorming, planning, TDD, review); if not, the kit works standalone with Cursor's plan mode.
+`/ko-*` commands invoke superpowers skills per phase when installed (brainstorming, planning, TDD, review); standalone fallback is Cursor's plan mode.
 
-**Spec/plan file location override:** save all specs and plans to `.cursor/specs/` (`YYYY-MM-DD-<topic>-design.md` / `-plan.md`) — NOT the superpowers default `docs/superpowers/` paths (user preference, overrides superpowers).
+**Spec/plan location override:** save specs and plans to `.cursor/specs/` (`YYYY-MM-DD-<topic>-design.md` / `-plan.md`) — NOT superpowers' default `docs/superpowers/`.
 
 ## Simplicity (hard rules)
 
 - Implement only what the current requirement explicitly asks for. No speculative features, no "while we're here" refactors (YAGNI).
 - Defensive code only for observed failure modes (bug report, log, failing test) — never guards for theoretical cases.
 - If the user can retry/refresh past an error, do NOT build auto-recovery — surface it and ask first.
-- Every change must answer: "which requirement or test breaks if I delete this?" — if none, cut it. When presenting a diff or plan, state what each change is FOR; unlabeled work is out of scope.
+- Every change must answer: "which requirement or test breaks if I delete this?" — if none, cut it. State what each change is FOR; unlabeled work is out of scope.
 - Offer TWO options — minimal and thorough, with cost/risk of each — and let the user choose; never default to thorough.
 
 ## Bug fixes (hard rules)
 
-- NO FIX WITHOUT ROOT CAUSE. Before editing code for a bug: reproduce it, trace the data flow to where the bad value originates, and state the root cause in one sentence. Symptom-suppressing patches are rejected.
+- NO FIX WITHOUT ROOT CAUSE. Before editing: reproduce the bug, trace the data flow to where the bad value originates, state the cause in one sentence. Symptom patches are rejected.
 - Invoke `superpowers:systematic-debugging` when available; if not installed, follow its phases inline: investigate → isolate → fix → verify.
 - If THREE consecutive fix attempts fail, STOP and report — that signals an architectural problem, not a patching opportunity.
+
+## Evidence before asserting
+
+- Assert a selector, step, or fixture exists only from evidence — the file you read, the DOM snapshot, or the run output. "The code looked like it" is not evidence.
+- An empty search proves the literal absent, not the concept. Before claiming absence: case-insensitive + codebase variants (`getFoo`, `FOO`, kebab, plural).
+- "This test covers AC-N" requires a real green run — and the test must be able to fail. If nothing could make it red, flag it.
