@@ -9,7 +9,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke-init.mjs"
+    "smoke": "node scripts/smoke-init.mjs",
+    "dup-check": "node scripts/dup-check.mjs"
   },
   "dependencies": {
     "chalk": "^5.3.0",
