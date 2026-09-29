@@ -43,8 +43,16 @@ ko-qa-kit prune                                   # remove resources for archety
 ko-qa-kit install skill playwright-bdd            # install one resource
 ko-qa-kit install rule e2e-playwright             # rules are resources too
 ko-qa-kit uninstall command ko-e2e-heal           # remove one resource
-ko-qa-kit export command ko-e2e-test ./out        # export a self-contained resource dir
+ko-qa-kit export ko-e2e-test --plugin             # export one command as a marketplace-ready plugin bundle
+ko-qa-kit export-plugin -n ko-e2e -c ko-e2e-test,ko-e2e-verify,ko-e2e-heal -d "E2E workflow" \
+  --author "Jane Doe <jane@corp.com>" --category testing
 ```
+
+`export` / `export-plugin` produce **marketplace-ready** bundles: full `.cursor-plugin/plugin.json`
+(displayName/author/license/category/folder pointers), LICENSE, the kit hooks with plugin-relative
+wiring (`--no-hooks` to skip), an `mcp.json` union of the servers for the archetypes owning the
+selected commands (e2e → Playwright, mobile → BrowserStack), and project-scope skill references
+rewritten to plugin-relative paths.
 
 ### What lands where
 

@@ -367,12 +367,12 @@ export async function installResource(projectDir, type, name, templateDir, optio
 // Recommended MCP servers per archetype. For multi-archetype repos the
 // recommendation is the UNION — a React+Nest repo needs Figma for the
 // frontend side AND Atlassian for the backend workflow.
-const ARCHETYPE_MCP_SERVERS = {
+export const ARCHETYPE_MCP_SERVERS = {
   'e2e-playwright': ['playwright'],
   'mobile-appium': ['browserstack'],
 };
 
-const MCP_SERVER_DEFS = {
+export const MCP_SERVER_DEFS = {
   playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
   browserstack: {
     command: 'npx',

@@ -77,13 +77,26 @@ program
     }
   });
 
+// "Name <email>" → { name, email }; bare "Name" → { name }. Undefined passes through.
+const parseAuthor = (raw) => {
+  if (!raw) return undefined;
+  const m = raw.match(/^([^<]+?)\s*<([^>]+)>$/);
+  return m ? { name: m[1], email: m[2] } : { name: raw };
+};
+const csv = (raw) => (raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : undefined);
+
 program
   .command('export <command-name>')
   .description('Export a command with all its dependencies as a portable bundle')
   .option('-o, --output <dir>', 'Output directory', 'exported')
   .option('--plugin', 'Include .cursor-plugin/plugin.json so the bundle installs as a Cursor plugin')
+  .option('--author <author>', 'Plugin author, e.g. "Jane Doe <jane@corp.com>"')
+  .option('--license <spdx>', 'License identifier (MIT ships the full text)', 'MIT')
   .action(async (commandName, opts) => {
-    const result = await exportCommand(commandName, TEMPLATE_DIR, path.resolve(opts.output), { plugin: opts.plugin, version: pkg.version });
+    const result = await exportCommand(commandName, TEMPLATE_DIR, path.resolve(opts.output), {
+      plugin: opts.plugin, version: pkg.version,
+      author: parseAuthor(opts.author), license: opts.license,
+    });
     printExportResult(result);
   });
 
@@ -94,11 +107,21 @@ program
   .option('-c, --commands <names>', 'Comma-separated command names to include')
   .option('-d, --description <text>', 'Plugin description')
   .option('-o, --output <dir>', 'Output directory', 'exported')
+  .option('--author <author>', 'Plugin author, e.g. "Jane Doe <jane@corp.com>"')
+  .option('--license <spdx>', 'License identifier (MIT ships the full text)', 'MIT')
+  .option('--category <category>', 'Marketplace category (e.g. developer-tools)')
+  .option('--keywords <list>', 'Comma-separated discovery keywords')
+  .option('--tags <list>', 'Comma-separated discovery tags')
+  .option('--display-name <name>', 'Human-readable plugin name')
+  .option('--no-hooks', 'Do not bundle the kit hooks into the plugin')
   .action(async (opts) => {
     const picked = await resolveExportPluginArgs(opts, TEMPLATE_DIR);
     const result = await exportPlugin({
       name: picked.name, commands: picked.commands, description: picked.description,
       templateDir: TEMPLATE_DIR, outputDir: path.resolve(opts.output), resourceMap: ARCHETYPE_RESOURCES,
+      author: parseAuthor(opts.author), license: opts.license, category: opts.category,
+      keywords: csv(opts.keywords), tags: csv(opts.tags), displayName: opts.displayName,
+      hooks: opts.hooks,
     });
     printExportResult(result);
   });

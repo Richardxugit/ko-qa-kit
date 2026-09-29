@@ -1,8 +1,8 @@
-// ko-qa-kit/src/scaffold-core/export.js
+// ko-dev-kit/src/scaffold-core/export.js
 import fs from 'fs-extra';
 import path from 'path';
 import { parseFrontmatter } from './frontmatter.js';
-import { getCommandEntries } from './engine.js';
+import { getCommandEntries, ARCHETYPE_MCP_SERVERS, MCP_SERVER_DEFS } from './engine.js';
 
 /**
  * Extract a command's skill/agent/rule dependencies.
@@ -18,22 +18,24 @@ export function extractDependencies(commandContent) {
   } catch {
     // malformed frontmatter — fall through to the regex scan
   }
-  if (data && ['skills', 'agents', 'rules', 'skills-optional'].some(k => k in data)) {
-    return {
-      skills: [...(data.skills ?? []), ...(data['skills-optional'] ?? [])],
-      agents: data.agents ?? [],
-      rules: [...new Set([...(data.rules ?? []), 'coding-standards'])],
-    };
+  const fm = (data && ['skills', 'agents', 'rules', 'skills-optional'].some(k => k in data)) ? data : null;
+
+  const skills = new Set([...(fm?.skills ?? []), ...(fm?.['skills-optional'] ?? [])]);
+  const agents = new Set(fm?.agents ?? []);
+  const rules = new Set(fm?.rules ?? []);
+
+  // Body path citations are dependencies too — a command that reads
+  // `.cursor/skills/workflow-refs/references/x.md` needs that skill bundled
+  // even when frontmatter doesn't declare it (the workflow-refs gap).
+  for (const match of commandContent.matchAll(/(?:\.cursor\/)?skills\/([a-z0-9-]+)\//gi)) {
+    skills.add(match[1]);
   }
 
-  const skills = new Set();
-  const agents = new Set();
-  const rules = new Set();
-
-  // Skills: patterns like `skill-name` skill, Read the `skill-name` skill
+  // Skills: "`name` skill" phrasing, "Read the `name` skill", and path citations
+  // (handled above). No fuzzy "skills: ... `x`" pattern — it catches bolt-log
+  // action words like `verify` (false positive found on ko-verify).
   const skillPatterns = [
     /`([a-z0-9-]+)`\s+skill/gi,
-    /skills?[:\s]+[^.]*`([a-z0-9-]+)`/gi,
     /Read the\s+`([a-z0-9-]+)`/gi,
   ];
   for (const pattern of skillPatterns) {
@@ -44,14 +46,13 @@ export function extractDependencies(commandContent) {
 
   // Agents: patterns like `agent-name` agent, delegate to `agent-name`
   const agentPatterns = [
-    /`([a-z0-9-]+)`\s+(sub-?)?agent/gi,
+    /`([a-z0-9-]+)`\s+(?:sub-?)?agent/gi,
     /delegate[d]?\s+to\s+(?:the\s+)?(?:\*\*)?`([a-z0-9-]+)`/gi,
     /the\s+\*\*`([a-z0-9-]+)`\*\*\s+(?:sub-?)?agent/gi,
   ];
   for (const pattern of agentPatterns) {
     for (const match of commandContent.matchAll(pattern)) {
-      const name = match[2] || match[1];
-      agents.add(name);
+      agents.add(match[1]); // group 1 is always the name — the optional sub- prefix is not
     }
   }
 
@@ -73,6 +74,127 @@ export function extractDependencies(commandContent) {
     agents: [...agents],
     rules: [...rules],
   };
+}
+
+// Project-scope references to bundled skills break inside a plugin — rewrite
+// them plugin-relative on export. `.cursor/specs/` and other project paths
+// (which point at the CONSUMER repo, not the plugin) are left alone.
+const rewriteProjectRefs = (content) =>
+  content.replace(/\.cursor\/skills\//g, 'skills/');
+
+async function rewriteBundleRefs(bundleDir) {
+  const files = [];
+  const walk = async (dir) => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(p);
+      else if (/\.(md|mdc)$/.test(entry.name)) files.push(p);
+    }
+  };
+  await walk(bundleDir);
+  for (const file of files) {
+    const before = await fs.readFile(file, 'utf-8');
+    const after = rewriteProjectRefs(before);
+    if (after !== before) await fs.writeFile(file, after);
+  }
+}
+
+const MIT_TEXT = `MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+`;
+
+async function writeLicense(bundleDir, license) {
+  const body = license === 'MIT'
+    ? MIT_TEXT
+    : `License: ${license}\n\nThis package is distributed under the ${license} license (SPDX). Replace this file with the full license text before publishing.\n`;
+  await fs.writeFile(path.join(bundleDir, 'LICENSE'), body);
+}
+
+// Marketplace-shape manifest (ko-cursor-plugins repo format / Cursor plugin
+// schema): folder pointers only for components actually bundled.
+async function writePluginManifest(bundleDir, opts, has) {
+  const manifest = {
+    name: opts.name,
+    displayName: opts.displayName || opts.name.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' '),
+    version: opts.version || '1.0.0',
+    description: opts.description,
+  };
+  if (opts.author) manifest.author = opts.author;
+  manifest.license = opts.license || 'MIT';
+  if (opts.category) manifest.category = opts.category;
+  if (opts.keywords?.length) manifest.keywords = opts.keywords;
+  if (opts.tags?.length) manifest.tags = opts.tags;
+  if (has.commands) manifest.commands = './commands/';
+  if (has.agents) manifest.agents = './agents/';
+  if (has.skills) manifest.skills = './skills/';
+  if (has.rules) manifest.rules = './rules/';
+  if (has.hooks) manifest.hooks = './hooks.json';
+  if (has.mcp) manifest.mcpServers = './mcp.json';
+  await fs.ensureDir(path.join(bundleDir, '.cursor-plugin'));
+  await fs.writeJson(path.join(bundleDir, '.cursor-plugin', 'plugin.json'), manifest, { spaces: 2 });
+}
+
+// Hooks ship at plugin root: scripts in hooks/, wiring in hooks.json with
+// commands rewritten to plugin-relative paths (`node ./hooks/…`).
+async function bundleHooks(templateDir, bundleDir, exported) {
+  const hooksSrc = path.join(templateDir, 'hooks');
+  const wiringSrc = path.join(templateDir, 'settings', 'hooks.json');
+  if (!await fs.pathExists(hooksSrc) || !await fs.pathExists(wiringSrc)) return false;
+  await fs.copy(hooksSrc, path.join(bundleDir, 'hooks'));
+  exported.push('hooks/');
+  const wiring = await fs.readJson(wiringSrc);
+  for (const entries of Object.values(wiring.hooks || {})) {
+    for (const entry of entries) {
+      entry.command = entry.command.replace('node .cursor/hooks/', 'node ./hooks/');
+    }
+  }
+  await fs.writeJson(path.join(bundleDir, 'hooks.json'), wiring, { spaces: 2 });
+  exported.push('hooks.json');
+  return true;
+}
+
+// MCP union: servers of every archetype owning a selected command. Shared
+// commands (unlisted in the resource map) run on every archetype, so they
+// contribute atlassian — the one server all archetypes carry.
+async function writeMcpConfig(normalized, resourceMap, bundleDir, exported) {
+  const owning = new Set(normalized.flatMap((cmd) => resourceMap.commands?.[cmd] ?? []));
+  const names = new Set();
+  for (const archetype of owning) {
+    for (const server of ARCHETYPE_MCP_SERVERS[archetype] ?? []) names.add(server);
+  }
+  // Shared commands (unlisted in the resource map) contribute the servers EVERY
+  // archetype carries — the intersection, which may be empty (this kit's two
+  // archetypes share no server).
+  if (names.size === 0 || normalized.some((cmd) => !(cmd in (resourceMap.commands ?? {})))) {
+    const sets = Object.values(ARCHETYPE_MCP_SERVERS);
+    const common = sets.length ? sets.reduce((a, b) => a.filter((s) => b.includes(s))) : [];
+    for (const s of common) names.add(s);
+  }
+  const mcpServers = {};
+  for (const name of [...names].sort()) {
+    if (MCP_SERVER_DEFS[name]) mcpServers[name] = MCP_SERVER_DEFS[name];
+  }
+  if (Object.keys(mcpServers).length === 0) return false;
+  await fs.writeJson(path.join(bundleDir, 'mcp.json'), { mcpServers }, { spaces: 2 });
+  exported.push('mcp.json');
+  return true;
 }
 
 /**
@@ -160,12 +282,20 @@ export async function exportCommand(commandName, templateDir, outputDir, options
     } catch {
       // keep the fallback description
     }
-    await fs.ensureDir(path.join(bundleDir, '.cursor-plugin'));
-    await fs.writeJson(
-      path.join(bundleDir, '.cursor-plugin', 'plugin.json'),
-      { name: normalizedName, description, version },
-      { spaces: 2 }
-    );
+    await rewriteBundleRefs(bundleDir);
+    await writeLicense(bundleDir, options.license || 'MIT');
+    exported.push('LICENSE');
+    await writePluginManifest(bundleDir, {
+      name: normalizedName, description, version,
+      author: options.author, license: options.license,
+    }, {
+      commands: true,
+      agents: deps.agents.length > 0,
+      skills: deps.skills.length > 0,
+      rules: deps.rules.length > 0,
+      hooks: false,
+      mcp: false,
+    });
     exported.push('.cursor-plugin/plugin.json');
   }
 
@@ -231,7 +361,7 @@ const PLUGIN_NAME_RE = /^[a-z0-9]+(?:[-.][a-z0-9]+)*$/;
  * @param {string} [opts.version] - Plugin version (defaults to 1.0.0)
  * @returns {{ exported: string[], missing: string[], outputPath: string } | { error: string }}
  */
-export async function exportPlugin({ name, commands, templateDir, outputDir, description, version = '1.0.0', resourceMap = {} }) {
+export async function exportPlugin({ name, commands, templateDir, outputDir, description, version = '1.0.0', resourceMap = {}, ...opts }) {
   if (!name || !PLUGIN_NAME_RE.test(name)) {
     return { error: `Invalid plugin name "${name}". Use kebab-case (lowercase letters, digits, hyphens), e.g. "qa-starter".` };
   }
@@ -308,35 +438,36 @@ export async function exportPlugin({ name, commands, templateDir, outputDir, des
     }
   }
 
-  // MCP config: merge the mcp.<archetype>.json variant of every archetype the
-  // selected commands are restricted to (shared commands contribute none).
-  const mcpServers = {};
-  const archetypesNeeded = new Set(
-    normalized.flatMap(cmd => resourceMap.commands?.[cmd] ?? [])
-  );
-  for (const archetype of [...archetypesNeeded].sort()) {
-    const variant = path.join(templateDir, 'settings', `mcp.${archetype}.json`);
-    if (await fs.pathExists(variant)) {
-      Object.assign(mcpServers, (await fs.readJson(variant)).mcpServers ?? {});
-    }
-  }
-  if (Object.keys(mcpServers).length > 0) {
-    await fs.writeJson(path.join(bundleDir, 'mcp.json'), { mcpServers }, { spaces: 2 });
-    exported.push('mcp.json');
-  }
+  // MCP config: union of servers for the archetypes owning the selected
+  // commands; shared commands contribute atlassian (carried by all archetypes).
+  const hasMcp = await writeMcpConfig(normalized, resourceMap, bundleDir, exported);
+
+  // Hooks (default on for plugin exports — they are part of the workflow).
+  const hasHooks = opts.hooks === false ? false : await bundleHooks(templateDir, bundleDir, exported);
+
+  await rewriteBundleRefs(bundleDir);
+
+  await writeLicense(bundleDir, opts.license || 'MIT');
+  exported.push('LICENSE');
 
   const commandList = normalized.map(c => `/${c}`).join(', ');
-  await fs.ensureDir(path.join(bundleDir, '.cursor-plugin'));
-  await fs.writeJson(
-    path.join(bundleDir, '.cursor-plugin', 'plugin.json'),
-    { name, description: description || `Custom ko plugin: ${commandList}`, version },
-    { spaces: 2 }
-  );
+  await writePluginManifest(bundleDir, {
+    name, description: description || `Custom ko plugin: ${commandList}`, version,
+    displayName: opts.displayName, author: opts.author, license: opts.license,
+    category: opts.category, keywords: opts.keywords, tags: opts.tags,
+  }, {
+    commands: true,
+    agents: agents.size > 0,
+    skills: skills.size > 0,
+    rules: rules.size > 0,
+    hooks: hasHooks,
+    mcp: hasMcp,
+  });
   exported.push('.cursor-plugin/plugin.json');
 
   const readme = `# ${name}
 
-A Cursor plugin bundling ${commandSummaries.length === 1 ? 'this command' : 'these commands'} with everything they need (skills, agents, rules${Object.keys(mcpServers).length > 0 ? ', MCP servers' : ''}):
+A Cursor plugin bundling ${commandSummaries.length === 1 ? 'this command' : 'these commands'} with everything they need (skills, agents, rules${hasHooks ? ', hooks' : ''}${hasMcp ? ', MCP servers' : ''}):
 
 ${commandSummaries.map(c => `- \`/${c.name}\`${c.description ? ` — ${c.description}` : ''}`).join('\n')}
 
