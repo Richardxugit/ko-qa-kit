@@ -9,12 +9,17 @@ import path from 'node:path';
 
 const hooksDir = path.resolve('templates/hooks');
 
-const runHook = (file, input) => {
-  const out = execFileSync('node', [path.join(hooksDir, file)], {
-    input: JSON.stringify(input),
-    encoding: 'utf-8',
-  });
-  return JSON.parse(out);
+const runHook = (file, input, cwd) => {
+  try {
+    const out = execFileSync('node', [path.join(hooksDir, file)], {
+      input: JSON.stringify(input),
+      encoding: 'utf-8',
+      cwd: cwd || hooksDir,
+    });
+    return { decision: JSON.parse(out), exitCode: 0 };
+  } catch (err) {
+    return { decision: err.stdout ? JSON.parse(err.stdout) : null, exitCode: err.status };
+  }
 };
 
 describe('privacy-block.cjs', () => {
@@ -24,13 +29,13 @@ describe('privacy-block.cjs', () => {
       'keys/id_rsa.key', 'credentials.json', '.npmrc', 'app/src/main/.gradle/gradle.properties',
     ];
     for (const p of secretPaths) {
-      const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeReadFile', file_path: p });
+      const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeReadFile', file_path: p }).decision;
       expect(d.permission, p).toBe('deny');
     }
   });
 
   it('denies a shell command that cats a secret file', () => {
-    const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command: 'cat .env' });
+    const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command: 'cat .env' }).decision;
     expect(d.permission).toBe('deny');
   });
 
@@ -40,7 +45,8 @@ describe('privacy-block.cjs', () => {
       { hook_event_name: 'beforeReadFile', file_path: 'secrets/token.txt' }, // not a pattern — basename alone is fine
       { hook_event_name: 'beforeShellExecution', command: 'npx playwright test' },
     ]) {
-      const decision = runHook('privacy-block.cjs', input);
+      const { decision, exitCode } = runHook('privacy-block.cjs', input);
+      expect(exitCode).toBe(0);
       expect(decision.permission ?? 'allow').toBe('allow');
     }
   });
@@ -71,7 +77,8 @@ describe('safety-guard.cjs', () => {
   for (const [command, shape] of denied) {
     it(`denies: ${command} (${shape})`, () => {
       const payload = shape === 'tool_input' ? { tool_input: { command } } : { command };
-      const decision = runHook('safety-guard.cjs', payload);
+      const { decision, exitCode } = runHook('safety-guard.cjs', payload);
+      expect(exitCode).toBe(0);
       expect(decision.permission).toBe('deny');
       expect(decision.agentMessage).toBeTruthy(); // denial must name a recovery path
     });
@@ -82,7 +89,7 @@ describe('safety-guard.cjs', () => {
   ];
   for (const command of asked) {
     it(`asks: ${command}`, () => {
-      const decision = runHook('safety-guard.cjs', { tool_input: { command } });
+      const { decision } = runHook('safety-guard.cjs', { tool_input: { command } });
       expect(decision.permission).toBe('ask');
       expect(decision.userMessage).toBeTruthy();
     });
@@ -105,7 +112,8 @@ describe('safety-guard.cjs', () => {
   ];
   for (const command of allowed) {
     it(`allows: ${command}`, () => {
-      const decision = runHook('safety-guard.cjs', { tool_input: { command } });
+      const { decision, exitCode } = runHook('safety-guard.cjs', { tool_input: { command } });
+      expect(exitCode).toBe(0);
       expect(decision.permission).toBe('allow');
     });
   }
@@ -153,7 +161,7 @@ describe('destructive-rules.json', () => {
 });
 
 describe('grep-negative.cjs', () => {
-  const run = (payload) => runHook('grep-negative.cjs', payload);
+  const run = (payload) => runHook('grep-negative.cjs', payload).decision;
 
   const emptyResponses = [
     'No matches found',
