@@ -20,6 +20,14 @@ const BLOCKED_PATTERNS = [
   /\.gradle\/gradle\.properties$/i,
 ];
 
+// Allow-listed: example/template env files are meant to be committed and hold
+// placeholders, not secrets. They are SCRUBBED from the candidate before the
+// blocked patterns run — scrubbing (rather than a veto) keeps
+// `cat .env.example && cat .env` from slipping the real .env past the guard.
+const ALLOW_PATTERNS = [
+  /\.env\.(example|sample|template|dist|defaults)\b/gi,
+];
+
 let raw = '';
 process.stdin.setEncoding('utf-8');
 process.stdin.on('data', (chunk) => { raw += chunk; });
@@ -35,7 +43,15 @@ process.stdin.on('end', () => {
     input.command, ti.command,
   ].filter(Boolean).map(String);
 
-  const hit = candidates.find((s) => BLOCKED_PATTERNS.some((re) => re.test(s)));
+  // Scrub allow-listed mentions, then screen what remains; report the
+  // ORIGINAL candidate in the message so the block is explainable.
+  const scrubbed = candidates.map((s) => {
+    let out = s;
+    for (const re of ALLOW_PATTERNS) out = out.replace(re, '');
+    return out;
+  });
+  const hitIndex = scrubbed.findIndex((s) => BLOCKED_PATTERNS.some((re) => re.test(s)));
+  const hit = hitIndex >= 0 ? candidates[hitIndex] : undefined;
 
   if (hit) {
     process.stdout.write(JSON.stringify({
