@@ -50,6 +50,38 @@ describe('privacy-block.cjs', () => {
       expect(decision.permission ?? 'allow').toBe('allow');
     }
   });
+
+  // Example/template env files are committed placeholders — the hook scrubs
+  // them from candidates instead of blocking. (git diff .env.example is a
+  // routine inspection, not a secret leak.)
+  it('allows example env files in commands and paths', () => {
+    for (const input of [
+      { hook_event_name: 'beforeShellExecution', command: 'git diff .env.example' },
+      { hook_event_name: 'beforeShellExecution', command: 'git diff config/.env.sample' },
+      { hook_event_name: 'beforeShellExecution', command: 'cat .env.template' },
+      { hook_event_name: 'beforeShellExecution', command: 'cat .env.dist' },
+      { hook_event_name: 'beforeReadFile', file_path: '.env.example' },
+    ]) {
+      const { decision, exitCode } = runHook('privacy-block.cjs', input);
+      expect(exitCode).toBe(0);
+      expect(decision.permission, JSON.stringify(input)).toBe('allow');
+    }
+  });
+
+  // Real env files stay blocked even when an allow-listed example appears in
+  // the same command — scrubbing must not become a veto smuggle path.
+  it('still denies real env access alongside an example mention', () => {
+    for (const command of [
+      'git diff .env',
+      'cat .env.local',
+      'cat .env.production',
+      'cat .env.example && cat .env',
+      'cp .env.example .env && cat .env',
+    ]) {
+      const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command }).decision;
+      expect(d.permission, command).toBe('deny');
+    }
+  });
 });
 
 describe('safety-guard.cjs', () => {
