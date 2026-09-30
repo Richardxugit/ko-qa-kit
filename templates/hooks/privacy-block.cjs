@@ -7,7 +7,8 @@
 // on stdout, exits 0. A "deny" decision blocks the action; anything else allows it.
 
 const BLOCKED_PATTERNS = [
-  /\.env($|\.)/i,
+  // \b (not just end-or-dot) so `cat .env | grep KEY` can't pipe past the guard.
+  /\.env\b/i,
   /credentials\.json/i,
   /\.secret/i,
   /\.pem$/i,
@@ -25,7 +26,7 @@ const BLOCKED_PATTERNS = [
 // blocked patterns run — scrubbing (rather than a veto) keeps
 // `cat .env.example && cat .env` from slipping the real .env past the guard.
 const ALLOW_PATTERNS = [
-  /\.env\.(example|sample|template|dist|defaults)\b/gi,
+  /\.env[-.](example|sample|template|dist|defaults)\b/gi,
 ];
 
 let raw = '';
