@@ -65,6 +65,11 @@ credentials). `safety-guard` guards destructive shell commands — **what** it b
 and a `safeDeleteTargets` exemption list covering `node_modules`, `test-results`, `playwright-report`,
 `allure-results`, `target`, `dist`, `build`, `coverage`): edit the JSON to change the policy, no JavaScript
 required. The guard fails open WITH a visible warning if its policy file goes missing.
+`edit-lint` runs on `postToolUse` (matcher `Write`): each agent-edited TS/JS file is linted with the
+project's own eslint and errors feed back as `additional_context` (per-file cooldown, errors only,
+silent when the repo has no eslint). `grep-negative` (matcher `Grep`): when a case-sensitive search
+returns nothing, it reminds the agent that the literal being absent is not the concept being absent —
+re-run case-insensitively with the codebase's variants before asserting absence.
 
 ## Resource matrix
 
