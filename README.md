@@ -7,9 +7,6 @@ archetype(s) and installs matching Cursor resources — slash commands, skills, 
 Covers two QA archetypes: web end-to-end testing via **Playwright BDD** (`e2e-playwright`) and
 mobile testing via **Appium + Cucumber-JVM on BrowserStack** (`mobile-appium`).
 
-Sibling of [ko-dev-kit](https://github.com/Richardxugit/ko-dev-kit) (engineering repos) — both kits
-share the same scaffolding engine architecture and can coexist in one repo (separate manifests).
-
 ## Archetypes
 
 | Archetype | Stack | Detected by |
@@ -91,6 +88,7 @@ re-run case-insensitively with the codebase's variants before asserting absence.
 
 ```bash
 pnpm test          # vitest: consistency + detect + scaffold suites
+pnpm dup-check     # description-overlap audit: no two resources compete for the same request
 pnpm run smoke     # init smoke tests against fixture repos
 ```
 
