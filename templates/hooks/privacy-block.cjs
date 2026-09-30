@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ko-cursor-kit privacy hook (Cursor hook protocol).
+// ko-qa-kit privacy hook (Cursor hook protocol).
 // Denies reads / shell access / MCP calls that touch likely-secret files.
 // Wired in .cursor/hooks.json to: beforeReadFile, beforeShellExecution, beforeMCPExecution.
 //
@@ -40,7 +40,7 @@ process.stdin.on('end', () => {
   if (hit) {
     process.stdout.write(JSON.stringify({
       permission: 'deny',
-      userMessage: `Blocked by ko-cursor-kit privacy hook: "${hit}" may contain secrets.`,
+      userMessage: `Blocked by ko-qa-kit privacy hook: "${hit}" may contain secrets.`,
       agentMessage: `Access to "${hit}" was denied by the privacy hook (possible secret/credential file). Do not read, copy, or transmit it.`,
     }));
     process.exit(0);
