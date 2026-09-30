@@ -89,3 +89,15 @@ Scenario Outline: Sign-in validation messages
 - Scenario tags for selective runs: `@sanity` (critical fast set), `@regression` (full suite), locale modifiers (`@auOnly`).
 - Jira ticket tags (`@CON-1234`) are allowed for traceability alongside the selection tags.
 - CI filters by tag expression (`-t "@sanity"`, `--grep "@checkout"`); `@skip` and `@quarantine` are auto-excluded.
+
+## Generated-code conventions (non-negotiable)
+
+Loaded by `/ko-e2e-test` at authoring time — apply exactly; details and reuse rules live in the step-registry skill.
+
+- **Page objects are singletons.** `class FooPage extends BasePage`, selectors as **strings** in the `elements` object, exported as a singleton, registered in the `src/pages/index.ts` barrel. A flow's first step opens the page (`await fooPage.open(page)` — hands `page` to the `pwHelper` singleton).
+- **`pwHelper` methods take Locators, not selector strings.** Wrap at the call site: `await pwHelper.click(this.locator(this.elements.submitButton))`. Never call `page.*` directly. <!-- TODO(repo): confirm the exact wrap helper name from BasePage/pwHelper -->
+- **One selector per element**, `data-testid` first, then role/label, then text, then scoped CSS. Never fallback chains, never XPath.
+- **Steps are regex-only** via `createBdd()`: `When(/^I add "(.+)" to my cart$/, ...)`. Cucumber expressions are forbidden. Steps orchestrate page objects; no raw selectors in steps.
+- **Cross-step state** goes on typed `global.*` properties (declared in the global type file), cleaned up in `After` hooks. Never module-level variables.
+- **Tags:** priority (`@regression` or `@sanity`), locale modifiers where relevant (`@auOnly`), `@quarantine` only via heal escalation. Jira ticket tags (`@CON-1234`) are **allowed** for traceability. Line 1 of every `.feature` is the feature-level domain tag (`@checkout`, `@wishlist`, …). There is no `@smoke` tag in this family.
+- **Web-first assertions** in `Then` steps only — one assertion-of-intent per step. Never `waitForTimeout`.
