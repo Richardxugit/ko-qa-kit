@@ -60,6 +60,9 @@ describe('privacy-block.cjs', () => {
       { hook_event_name: 'beforeShellExecution', command: 'git diff config/.env.sample' },
       { hook_event_name: 'beforeShellExecution', command: 'cat .env.template' },
       { hook_event_name: 'beforeShellExecution', command: 'cat .env.dist' },
+      { hook_event_name: 'beforeShellExecution', command: 'cat .env-sample' }, // hyphenated example variant
+      { hook_event_name: 'beforeShellExecution', command: 'cat .envrc' }, // direnv config — \b must not reach across 'env'
+      { hook_event_name: 'beforeShellExecution', command: 'cat .envelope' }, // word char after .env
       { hook_event_name: 'beforeReadFile', file_path: '.env.example' },
     ]) {
       const { decision, exitCode } = runHook('privacy-block.cjs', input);
@@ -77,6 +80,8 @@ describe('privacy-block.cjs', () => {
       'cat .env.production',
       'cat .env.example && cat .env',
       'cp .env.example .env && cat .env',
+      'cat .env | grep DATABASE_URL', // pipe bypass — \b closes it
+      'grep KEY .env && echo done',
     ]) {
       const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command }).decision;
       expect(d.permission, command).toBe('deny');
