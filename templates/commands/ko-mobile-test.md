@@ -1,7 +1,7 @@
 ---
 name: ko-mobile-test
 description: Generate or extend mobile Appium/Cucumber-JVM test coverage — reuse-first across existing feature/step/page/service/constants/entity files, evidence-based locators, delegated to the test-generator agent, then verify against BrowserStack and hand off failures to /ko-mobile-heal
-args: "[--local] <behavior objective | ticket | scenario description>"
+args: "[--local [android|ios] [--build] [--fetch]] <behavior objective | ticket | scenario description>"
 skills: [mobile-browserstack-triage]
 agents: [test-generator]
 rules: [mobile-appium]
@@ -45,9 +45,9 @@ active execution path:
 
 - **BrowserStack path** — BrowserStack MCP session state, an App Live capture, or ask the user
   for one. State exactly which screen/element you need evidence for.
-- **Local path (`--local`)** — boot the local emulator with the user's APK (see the
-  local-execution reference) and dump the screen: `adb shell uiautomator dump` + pull the XML,
-  or attach Appium Inspector.
+- **Local path (`--local`)** — boot the local emulator/simulator with the user's app binary (see the
+  local-execution reference) and dump the screen: Android → `adb shell uiautomator dump` + pull the
+  XML; iOS → Appium Inspector page source attached to the simulator session.
 - Either way, a previously captured page-source XML or screenshot of the target screen works
   directly — check for one first.
 - From the evidence, derive locators in priority order: Accessibility ID → `_ANDROID_ID` (only
@@ -81,11 +81,14 @@ Two execution paths, chosen per run:
 
 - **BrowserStack (default)** — run the new/updated scenario against the repo's BrowserStack
   profile (confirm exact flags in AGENTS.md).
-- **Local (`--local`)** — the user drops the APK into the repo's local-app folder (the kit creates
-  the folder + `.gitignore` entry on the first local run if missing); boot a local emulator and
-  verify there. Follow the **local-execution reference**
+- **Local (`--local [android|ios]`)** — the user supplies the app binary in the repo's local-app
+  folder (the kit creates the folder + `.gitignore` entry on the first local run if missing);
+  Android runs the APK on a local emulator, iOS runs a simulator `.app` on the iOS Simulator
+  (macOS only — a signed `.ipa` never works there). Optional modifiers: `--build` compiles the
+  simulator `.app` from local source first; `--fetch` pulls the latest CI artifact when the repo
+  documents a download command. Follow the **local-execution reference**
   (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check (configure
-  the local block with the user if missing) → APK present → toolchain probe →
+  the local block with the user if missing) → binary present → toolchain probe →
   Node-version-manager false negatives → stop-and-ask on anything missing.
 
 Without `--local`, run only the new/updated scenario against BrowserStack (confirm the exact

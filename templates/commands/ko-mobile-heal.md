@@ -1,7 +1,7 @@
 ---
 name: ko-mobile-heal
 description: Diagnose and repair a failing or flaky mobile Appium test from evidence — classify test-defect vs app-regression via BrowserStack MCP (or Surefire/Cucumber reports when unavailable), present a Heal Plan for approval, then delegate the repair to test-debugger and re-verify to stability
-args: "[--local] [scenario | feature path | tag | pasted error]"
+args: "[--local [android|ios] [--build] [--fetch]] [scenario | feature path | tag | pasted error]"
 skills: [mobile-browserstack-triage]
 agents: [test-debugger]
 rules: [mobile-appium]
@@ -88,11 +88,12 @@ Wait for its report. If it returns **"NOT FIXED — needs product decision"** or
 Match how the scenario originally ran:
 
 - **BrowserStack (default)** — re-run against the repo's BrowserStack profile.
-- **Local (`--local`)** — user-supplied APK in the local-app folder (kit-created with a
-  `.gitignore` entry if missing) + local emulator, per the
+- **Local (`--local [android|ios]`)** — user-supplied app binary in the local-app folder
+  (kit-created with a `.gitignore` entry if missing): APK + local emulator for Android, simulator
+  `.app` + iOS Simulator for iOS (macOS only). `--build` / `--fetch` modifiers per the
   **local-execution reference** (`mobile-browserstack-triage` → `references/local-execution.md`).
-  Local debug evidence: `adb logcat`, local screenshots, Appium server logs (see the reference's
-  evidence-gathering section).
+  Local debug evidence: Android → `adb logcat`; iOS → `xcrun simctl spawn booted log stream`;
+  both → local screenshots, Appium server logs (see the reference's evidence-gathering sections).
 
 Whichever target is used:
 - **Deterministic fix** (locator repair, wrong assertion target) — one re-run is sufficient proof.
