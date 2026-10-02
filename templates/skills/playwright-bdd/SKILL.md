@@ -97,7 +97,7 @@ Set in a step (`global.orderId = …`), read in later steps, and **clean up in `
 
 Tests create their accounts by **registering through the live UI** (including TOTP MFA where the flow requires it) and reuse sessions by **injecting cookies via the cookie helper**. There is no `.auth/` directory and no saved-session `storageState` setup in this family.
 
-- Credentials/secrets are **vault-encrypted** and the privacy hook blocks reading them. **Never read `.env` files** — use the helpers that consume decrypted config at runtime.
+- Plain `.env` files hold **dev-environment values only** (no prod / non-prod / UAT credentials) and are readable when you need config values (base URL, flags, test users). Secret-grade files — `.env.secret`, keys, certs, credential stores — stay hook-blocked; use the helpers that consume config at runtime where they exist.
 - Need an authenticated page for exploration? Drive the registration/login flow itself (or a codegen session where you log in by hand) — see `dom-sight`.
 
 ## WireMock (ui/ family)

@@ -90,7 +90,7 @@ npx playwright show-trace trace.zip
 - **Page objects:** Extend `BasePage`, string selectors in `elements` object, singleton exports in `src/pages/index.ts`. A flow's first step calls `page.open(page)` → `pwHelper.setPage`.
 - **Cross-step state:** typed `global.*` properties (e.g., `global.orderId`). Never module variables. Clean up in `After`.
 - **DOM sight:** see the `dom-sight` skill — MCP snapshot / codegen / live probes. One selector per element; never guess, never fallback chains.
-- **Auth:** live UI registration (TOTP MFA) + cookie injection via the cookie helper. NO `storageState` files. Never read `.env` (vault-encrypted, hook-blocked).
+- **Auth:** live UI registration (TOTP MFA) + cookie injection via the cookie helper. NO `storageState` files. Plain `.env` is dev-only values and readable; `.env.secret`/keys/certs stay hook-blocked.
 - **WireMock:** UI tests use mocked services; E2E tests hit real environments.
 - **Assertions:** Web-first auto-waiting only. NEVER `waitForTimeout`.
 - **Scenarios:** Max 8 steps. Independent, parallel-safe, own their data.
@@ -99,7 +99,7 @@ npx playwright show-trace trace.zip
 
 ## Environment & config
 - BASE_URL set by env + locale in `scripts/run-tests.sh`
-- Credentials via Ansible Vault encrypted `.env` files — decryption happens in tooling; agents never read these files (privacy hook denies)
+- Env config (base URL, flags, test users) lives in plain `.env` files — dev-environment values only, readable. Secret-grade material (`.env.secret`, keys, certs) stays hook-blocked and tooling-only
 - CI: GitHub Actions, traces on retry, screenshots on failure
 - BrowserStack for cross-browser (use `-r browserstack`)
 - MCP: `.cursor/mcp.json` ships the `playwright` server for live DOM exploration (see `dom-sight`)
