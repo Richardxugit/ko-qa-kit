@@ -74,6 +74,7 @@ Present a table of the planned scenario, one row per step, each marked:
 ### 5. GENERATE
 
 - `.feature` under the correct RUN_MODE folder (`src/features/e2e/<domain>/`, `src/features/ui/…`, …), domain tag on line 1, scenario tags per the quick-reference.
+- **Jira ticket input → a scenario-level `@<TICKET-ID>` tag, and nowhere else.** File names describe the flow (`add-to-cart.feature`), scenario titles describe the behavior — the ticket number never appears in either.
 - New steps in `src/steps/`, regex-only, delegating to page objects.
 - New/extended page objects in `src/pages/` (singleton, `elements` strings), **registered in the `src/pages/index.ts` barrel**.
 - New cross-step state on the typed `global` interface, cleaned up in `After`.

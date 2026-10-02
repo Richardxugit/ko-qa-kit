@@ -87,7 +87,7 @@ Scenario Outline: Sign-in validation messages
 ## Tagging
 - Feature-level domain tag on line 1 of the file (`@checkout`, `@wishlist`).
 - Scenario tags for selective runs: `@sanity` (critical fast set), `@regression` (full suite), locale modifiers (`@auOnly`).
-- Jira ticket tags (`@CON-1234`) are allowed for traceability alongside the selection tags.
+- Jira ticket tags (`@CON-1234`) are allowed for traceability alongside the selection tags — a tag is the ONLY place a ticket number appears; never in the file name or scenario title.
 - CI filters by tag expression (`-t "@sanity"`, `--grep "@checkout"`); `@skip` and `@quarantine` are auto-excluded.
 
 ## Generated-code conventions (non-negotiable)
@@ -99,5 +99,5 @@ Loaded by `/ko-e2e-test` at authoring time — apply exactly; details and reuse 
 - **One selector per element**, `data-testid` first, then role/label, then text, then scoped CSS. Never fallback chains, never XPath.
 - **Steps are regex-only** via `createBdd()`: `When(/^I add "(.+)" to my cart$/, ...)`. Cucumber expressions are forbidden. Steps orchestrate page objects; no raw selectors in steps.
 - **Cross-step state** goes on typed `global.*` properties (declared in the global type file), cleaned up in `After` hooks. Never module-level variables.
-- **Tags:** priority (`@regression` or `@sanity`), locale modifiers where relevant (`@auOnly`), `@quarantine` only via heal escalation. Jira ticket tags (`@CON-1234`) are **allowed** for traceability. Line 1 of every `.feature` is the feature-level domain tag (`@checkout`, `@wishlist`, …). There is no `@smoke` tag in this family.
+- **Tags:** priority (`@regression` or `@sanity`), locale modifiers where relevant (`@auOnly`), `@quarantine` only via heal escalation. Jira ticket tags (`@CON-1234`) are **allowed** for traceability — the only place a ticket number appears, never the file name or scenario title. Line 1 of every `.feature` is the feature-level domain tag (`@checkout`, `@wishlist`, …). There is no `@smoke` tag in this family.
 - **Web-first assertions** in `Then` steps only — one assertion-of-intent per step. Never `waitForTimeout`.
