@@ -49,7 +49,7 @@ Fill gaps from the registry and existing features first — a similar screen oft
 
 - Selector priority: `data-testid` → role/label → text → scoped CSS. One selector per element — never fallback chains.
 - **Ambiguity protocol:** zero or multiple plausible candidates → show alternatives with snapshot evidence and ask. Never silently pick.
-- Flag mapped elements lacking a `data-testid` — the REPORT recommends the app team add one (recommendation only; this command never edits app code).
+- Flag mapped elements lacking a `data-testid` — the REPORT recommends the UI team add one (recommendation only; this command never edits app code).
 
 **Stop and wait for confirmation of the Element Map** before writing any code — it is the selector source of truth for everything generated below.
 
@@ -107,7 +107,7 @@ Then tell the user to run `/ko-e2e-heal` (it reads the handoff automatically), o
 
 ### 8. REPORT
 
-Files created/changed, reuse stats ([REUSE]/[ADAPT]/[NEW] counts), the exact command to run this flow, missing-`data-testid` recommendations for the app team (from the Element Map), and — if handed off — the handoff path and what the debugger should look at first.
+Files created/changed, reuse stats ([REUSE]/[ADAPT]/[NEW] counts), the exact command to run this flow, missing-`data-testid` recommendations for the UI team (from the Element Map), and — if handed off — the handoff path and what the debugger should look at first.
 
 ## Product-gap rule
 
