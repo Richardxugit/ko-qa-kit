@@ -18,7 +18,6 @@
     ],
     "deny": [
       "Shell(rm -rf *)",
-      "Read(**/.env*)",
       "Read(**/.env.secret*)",
       "Read(**/*.pem)",
       "Read(**/*.key)"

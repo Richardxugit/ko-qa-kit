@@ -25,7 +25,7 @@ const runHook = (file, input, cwd) => {
 describe('privacy-block.cjs', () => {
   it('denies reads of files whose PATH matches a secret pattern', () => {
     const secretPaths = [
-      '.env', '.env.local', 'config/.env.production', 'certs/server.pem',
+      '.env.secret', 'config/.env.secret.local', 'certs/server.pem',
       'keys/id_rsa.key', 'credentials.json', '.npmrc', 'app/src/main/.gradle/gradle.properties',
     ];
     for (const p of secretPaths) {
@@ -34,9 +34,36 @@ describe('privacy-block.cjs', () => {
     }
   });
 
-  it('denies a shell command that cats a secret file', () => {
-    const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command: 'cat .env' }).decision;
-    expect(d.permission).toBe('deny');
+  // ko-tests env files hold dev-environment values only (no prod / non-prod /
+  // UAT credentials), so plain env files are readable — verification commands
+  // need config values like base URLs, flags, and test users.
+  it('allows plain .env files in reads and shell commands', () => {
+    for (const input of [
+      { hook_event_name: 'beforeReadFile', file_path: '.env' },
+      { hook_event_name: 'beforeReadFile', file_path: '.env.local' },
+      { hook_event_name: 'beforeReadFile', file_path: 'config/.env.dev' },
+      { hook_event_name: 'beforeShellExecution', command: 'cat .env' },
+      { hook_event_name: 'beforeShellExecution', command: 'cat .env | grep BASE_URL' },
+      { hook_event_name: 'beforeShellExecution', command: 'grep KEY .env && echo done' },
+      { hook_event_name: 'beforeShellExecution', command: 'git diff .env.example' },
+      { hook_event_name: 'beforeReadFile', file_path: '.env.example' },
+    ]) {
+      const { decision, exitCode } = runHook('privacy-block.cjs', input);
+      expect(exitCode).toBe(0);
+      expect(decision.permission ?? 'allow', JSON.stringify(input)).toBe('allow');
+    }
+  });
+
+  it('denies a shell command that cats a secret-grade file', () => {
+    for (const command of [
+      'cat .env.secret',
+      'cat .env.example && cat .env.secret', // an example mention must not smuggle the real secret file
+      'cat .env.secret | grep PASSWORD', // pipe bypass
+      'cat certs/server.pem',
+    ]) {
+      const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command }).decision;
+      expect(d.permission, command).toBe('deny');
+    }
   });
 
   it('allows normal files and commands', () => {
@@ -51,40 +78,20 @@ describe('privacy-block.cjs', () => {
     }
   });
 
-  // Example/template env files are committed placeholders — the hook scrubs
-  // them from candidates instead of blocking. (git diff .env.example is a
-  // routine inspection, not a secret leak.)
-  it('allows example env files in commands and paths', () => {
+  // Example/template env files are committed placeholders, and near-miss names
+  // (`.envrc`, `.envelope`) must never trip the secret patterns.
+  it('allows example env files and near-miss names in commands and paths', () => {
     for (const input of [
-      { hook_event_name: 'beforeShellExecution', command: 'git diff .env.example' },
       { hook_event_name: 'beforeShellExecution', command: 'git diff config/.env.sample' },
       { hook_event_name: 'beforeShellExecution', command: 'cat .env.template' },
       { hook_event_name: 'beforeShellExecution', command: 'cat .env.dist' },
       { hook_event_name: 'beforeShellExecution', command: 'cat .env-sample' }, // hyphenated example variant
-      { hook_event_name: 'beforeShellExecution', command: 'cat .envrc' }, // direnv config — \b must not reach across 'env'
+      { hook_event_name: 'beforeShellExecution', command: 'cat .envrc' }, // direnv config
       { hook_event_name: 'beforeShellExecution', command: 'cat .envelope' }, // word char after .env
-      { hook_event_name: 'beforeReadFile', file_path: '.env.example' },
     ]) {
       const { decision, exitCode } = runHook('privacy-block.cjs', input);
       expect(exitCode).toBe(0);
       expect(decision.permission, JSON.stringify(input)).toBe('allow');
-    }
-  });
-
-  // Real env files stay blocked even when an allow-listed example appears in
-  // the same command — scrubbing must not become a veto smuggle path.
-  it('still denies real env access alongside an example mention', () => {
-    for (const command of [
-      'git diff .env',
-      'cat .env.local',
-      'cat .env.production',
-      'cat .env.example && cat .env',
-      'cp .env.example .env && cat .env',
-      'cat .env | grep DATABASE_URL', // pipe bypass — \b closes it
-      'grep KEY .env && echo done',
-    ]) {
-      const d = runHook('privacy-block.cjs', { hook_event_name: 'beforeShellExecution', command }).decision;
-      expect(d.permission, command).toBe('deny');
     }
   });
 });

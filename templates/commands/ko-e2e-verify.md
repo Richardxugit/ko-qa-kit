@@ -89,4 +89,4 @@ End every report with: input, resolved areas, tag expression, scenario counts, e
 - Never edit a test to make a run green — that is `/ko-e2e-heal`'s job, and only after triage.
 - Never weaken the GAP signal — an untested change reported as green is the worst output this command can produce.
 - Never guess selectors or DOM state during verification; selection uses the journey descriptors only.
-- Never touch vault-encrypted secrets or `.env` files.
+- Never touch secret-grade files (`.env.secret`, keys, certs, credential stores). Plain `.env` holds dev-environment values only and is readable when you need config.

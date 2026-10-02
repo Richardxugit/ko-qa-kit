@@ -5,12 +5,15 @@
 //
 // Cursor hook contract: receives a JSON event on stdin, writes a JSON decision
 // on stdout, exits 0. A "deny" decision blocks the action; anything else allows it.
+//
+// Policy note: plain `.env` files are READABLE in this family. ko-tests env
+// files hold dev-environment values only (no prod / non-prod / UAT credentials),
+// and verification workflows need those values (base URLs, flags, test users).
+// Secret-grade material — `.env.secret`, keys, certs, credential stores — stays blocked.
 
 const BLOCKED_PATTERNS = [
-  // \b (not just end-or-dot) so `cat .env | grep KEY` can't pipe past the guard.
-  /\.env\b/i,
   /credentials\.json/i,
-  /\.secret/i,
+  /\.secret/i, // covers `.env.secret` and any `*.secret*` file
   /\.pem$/i,
   /\.key$/i,
   /secret[_-]?manager/i,
@@ -19,14 +22,6 @@ const BLOCKED_PATTERNS = [
   /\.p12$/i,
   /\.pfx$/i,
   /\.gradle\/gradle\.properties$/i,
-];
-
-// Allow-listed: example/template env files are meant to be committed and hold
-// placeholders, not secrets. They are SCRUBBED from the candidate before the
-// blocked patterns run — scrubbing (rather than a veto) keeps
-// `cat .env.example && cat .env` from slipping the real .env past the guard.
-const ALLOW_PATTERNS = [
-  /\.env[-.](example|sample|template|dist|defaults)\b/gi,
 ];
 
 let raw = '';
@@ -44,15 +39,7 @@ process.stdin.on('end', () => {
     input.command, ti.command,
   ].filter(Boolean).map(String);
 
-  // Scrub allow-listed mentions, then screen what remains; report the
-  // ORIGINAL candidate in the message so the block is explainable.
-  const scrubbed = candidates.map((s) => {
-    let out = s;
-    for (const re of ALLOW_PATTERNS) out = out.replace(re, '');
-    return out;
-  });
-  const hitIndex = scrubbed.findIndex((s) => BLOCKED_PATTERNS.some((re) => re.test(s)));
-  const hit = hitIndex >= 0 ? candidates[hitIndex] : undefined;
+  const hit = candidates.find((s) => BLOCKED_PATTERNS.some((re) => re.test(s)));
 
   if (hit) {
     process.stdout.write(JSON.stringify({

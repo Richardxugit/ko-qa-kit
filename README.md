@@ -64,8 +64,8 @@ rewritten to plugin-relative paths.
 | Hook policy | `.cursor/hooks/destructive-rules.json` | merge-protected (team-editable) |
 | `AGENTS.md` | repo root | user-protected |
 
-**Hooks**: `privacy-block` denies reads/shell/MCP/Tab reads touching likely-secret files (`.env`, keys,
-credentials). `safety-guard` guards destructive shell commands — **what** it blocks is policy and lives in
+**Hooks**: `privacy-block` denies reads/shell/MCP/Tab reads touching secret-grade files (`.env.secret`, keys,
+certs, credential stores). Plain `.env` files hold dev-environment values only and are readable. `safety-guard` guards destructive shell commands — **what** it blocks is policy and lives in
 `.cursor/hooks/destructive-rules.json` (deny / ask tiers, an ask tier that warns on `--force-with-lease`,
 and a `safeDeleteTargets` exemption list covering `node_modules`, `test-results`, `playwright-report`,
 `allure-results`, `target`, `dist`, `build`, `coverage`): edit the JSON to change the policy, no JavaScript

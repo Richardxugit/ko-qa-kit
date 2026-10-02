@@ -61,7 +61,7 @@ Then ask: **fix only / fix + refactor / stop.** No file is edited before the use
 
 Re-dispatch **`e2e-debugger`** in **execute** mode with the approved Heal Plan (fix only, or fix + refactor) and the boundaries:
 
-- Search the registry before touching steps (never grep), keep `.feature` files free of selectors/waits, route interactions through `pwHelper` (Locators, not strings), **one selector per element — never fallback chains**, never weaken an assertion, never add `waitForTimeout`, never touch vault-encrypted secrets or `.env` files (the privacy hook denies them anyway).
+- Search the registry before touching steps (never grep), keep `.feature` files free of selectors/waits, route interactions through `pwHelper` (Locators, not strings), **one selector per element — never fallback chains**, never weaken an assertion, never add `waitForTimeout`, never touch secret-grade files (`.env.secret`, keys, certs — the privacy hook denies them anyway). Plain `.env` is dev-environment values only and readable.
 - **Stay inside the approved plan.** If mid-fix evidence contradicts it, the agent stops and returns the new evidence — go back to step 5 and re-present a revised Heal Plan instead of improvising beyond the approved scope.
 
 Wait for the agent's report. If it returns **"NOT FIXED — needs product decision"**, surface that verbatim and stop.

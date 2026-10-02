@@ -86,7 +86,7 @@ Keep max 200 entries; drop entries older than 90 days when writing.
 - If not fixed within budget: recommend `@quarantine` for the scenario and return **"NOT FIXED — needs product decision"** (for regressions/stale assertions) or **"NOT FIXED — attempts exhausted"** (with the evidence trail) to the orchestrator.
 
 ## Boundaries
-- Never read or edit vault-encrypted secrets or `.env` files — the privacy hook denies them; work with the auth flow's public surface only.
+- Never read or edit secret-grade files (`.env.secret`, keys, certs) — the privacy hook denies them; work with the auth flow's public surface only. Plain `.env` holds dev-environment values and is readable when you need config.
 - Never weaken or delete an assertion just to get green — that converts a real failure into a silent one.
 - Never add `waitForTimeout` or blind retries; a masked race is a debt, not a fix.
 - Never introduce cross-scenario coupling or mutate shared accounts/records other tests read.
