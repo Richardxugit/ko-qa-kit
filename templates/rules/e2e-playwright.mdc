@@ -123,7 +123,7 @@ export const checkoutPage = new CheckoutPage();
 ## Tagging
 - **Line 1 of every `.feature` is the feature-level domain tag** (`@checkout`, `@account`, `@wishlist`, `@plp`).
 - Scenario tags: priority (`@regression` or `@sanity`), locale modifiers where relevant (`@auOnly`), `@wip` for in-progress work.
-- **Jira ticket tags are allowed** for traceability (e.g. `@CON-2633`) alongside — not instead of — the selection tags.
+- **Jira ticket tags are allowed** for traceability (e.g. `@CON-2633`) alongside — not instead of — the selection tags. A tag is the only place a ticket number appears: never the file name, never the scenario title.
 - `@skip` excludes from all runs (the runner auto-excludes it). `@quarantine` marks a flaky test parked by `/ko-e2e-heal` escalation — CI excludes it; it is tracked debt, not a fix.
 - There is no `@smoke` tag in this family — the fast set is selected via `@sanity`.
 - CI selects subsets by tag expression.
