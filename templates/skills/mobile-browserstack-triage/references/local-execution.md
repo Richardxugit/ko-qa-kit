@@ -4,6 +4,12 @@ Shared by `/ko-mobile-test --local` and `/ko-mobile-heal --local`. The default e
 BrowserStack; `--local` runs against a local Android emulator with a user-supplied APK. Follow
 this procedure exactly — never attempt a local run on the hope it'll work.
 
+**When each path is the right choice.** BrowserStack is the verification ground truth: real
+devices, the only iOS path, pre-merge and handoff runs. `--local` is the secondary path: fast
+Android inner-loop iteration (locator probing, quick smoke checks) and a pressure valve when
+BrowserStack sessions are queued or constrained. Never treat a local-only green as sufficient
+for delivery — confirm on BrowserStack before calling a scenario done.
+
 ## The two execution paths
 
 | | BrowserStack (default) | Local (`--local`) |

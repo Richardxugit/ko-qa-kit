@@ -32,6 +32,9 @@ src/test/resources/
 
 ## Key commands
 ```bash
+# Free pre-flight — compile + step-binding check, no device needed (dry-run)
+mvn clean test "-Dcucumber.filter.tags=@<new-scenario-tag>" -Dcucumber.execution.dry-run=true
+
 # Run a tagged set against BrowserStack
 mvn clean test "-Dcucumber.filter.tags=@regression" -Dspring.profiles.active=<env>,<platform>,<locale> \
   -Ddevice=<android|ios> -Dlocale=<AU|NZ> -Denvironment=<env> \

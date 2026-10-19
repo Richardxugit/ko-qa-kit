@@ -43,13 +43,16 @@ An empty result for a brand-new screen is expected, not a dead end — proceed t
 Never invent a selector. For elements no existing page object covers, evidence comes from the
 active execution path:
 
-- **BrowserStack path** — BrowserStack MCP session state, an App Live capture, or ask the user
-  for one. State exactly which screen/element you need evidence for.
-- **Local path (`--local`)** — boot the local emulator with the user's APK (see the
-  local-execution reference) and dump the screen: `adb shell uiautomator dump` + pull the XML,
-  or attach Appium Inspector.
-- Either way, a previously captured page-source XML or screenshot of the target screen works
-  directly — check for one first.
+Evidence priority — cheapest first:
+
+1. A previously captured page-source XML or screenshot of the target screen — check for one
+   first.
+2. **BrowserStack path (default)** — BrowserStack MCP session state, an App Live capture, or ask
+   the user for one. State exactly which screen/element you need evidence for.
+3. **Local emulator** — only when a local toolchain already exists (see the local-execution
+   reference): dump the screen with `adb shell uiautomator dump` + pull the XML, or attach
+   Appium Inspector. Never bootstrap a local toolchain (the reference's install section) just
+   for discovery — fall back to the BrowserStack path instead.
 - From the evidence, derive locators in priority order: Accessibility ID → `_ANDROID_ID` (only
   when a stable resource-id is present) → XPath (`_ANDROID_XPATH` / `_IOS_XPATH`) as a last
   resort. Keep Android/iOS pairs on the same base constant name.
@@ -79,6 +82,11 @@ format.
 
 Two execution paths, chosen per run:
 
+| Path | When to use it |
+|---|---|
+| **BrowserStack (default)** | The verification ground truth — real devices, the only iOS path, pre-merge and handoff runs. |
+| **Local (`--local`)** | Secondary: fast Android inner-loop iteration (locator probing, quick smoke), or when BrowserStack is queued or session-constrained. A local-only green is not sufficient for delivery — confirm on BrowserStack before calling the scenario done. |
+
 - **BrowserStack (default)** — run the new/updated scenario against the repo's BrowserStack
   profile (confirm exact flags in AGENTS.md).
 - **Local (`--local`)** — the user drops the APK into the repo's local-app folder (the kit creates
@@ -87,6 +95,12 @@ Two execution paths, chosen per run:
   (`mobile-browserstack-triage` → `references/local-execution.md`): repo support check (configure
   the local block with the user if missing) → APK present → toolchain probe →
   Node-version-manager false negatives → stop-and-ask on anything missing.
+
+Before any device run, do the free static check first: compile + Cucumber glue dry-run
+(illustrative: add `-Dcucumber.execution.dry-run=true` to the repo's run command — confirm the
+exact invocation in AGENTS.md). Step-binding and compile errors surface here without spending
+a BrowserStack session or booting an emulator. Only proceed to the device run once the dry-run
+is green.
 
 Without `--local`, run only the new/updated scenario against BrowserStack (confirm the exact
 Maven/profile flags in `AGENTS.md`; illustrative default):

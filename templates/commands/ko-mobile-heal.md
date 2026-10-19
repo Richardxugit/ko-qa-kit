@@ -97,7 +97,9 @@ Match how the scenario originally ran:
 Whichever target is used:
 - **Deterministic fix** (locator repair, wrong assertion target) — one re-run is sufficient proof.
 - **Flakiness fix** — re-run enough times to beat the recorded before-fix rate; a single green run
-  is not proof for a flake.
+  is not proof for a flake. Cap BrowserStack re-runs at 3: if the rate is improved but not beaten
+  within that budget, report "improved, not proven on BrowserStack (N=3) — confirm via CI history"
+  instead of burning more sessions.
 
 ## 9. Report + escalation
 
