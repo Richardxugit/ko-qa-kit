@@ -1,8 +1,8 @@
 ---
 name: ko-e2e-verify
-description: Verify a change against the journey pool — resolve a PR link, Jira ticket, or text description into impacted test domains (impact-map + package consumer graph), check coverage, run the matching journeys, and report PASS / FAIL (classified) / GAP
-args: "<pr-url | ticket | text description> [--env <name>] [--base-url <url>]"
-skills: [playwright-bdd, step-registry]
+description: Verify a change against the journey pool — resolve a PR link, Jira ticket, or text description into impacted test domains (impact-map + package consumer graph), check coverage, run the matching journeys, and report PASS / FAIL (classified) / GAP; plain-text business rules become flag/time-controlled case BDD where the repo provides the runner
+args: "<pr-url | ticket | text description | business rules> [--env <name>] [--base-url <url>]"
+skills: [playwright-bdd, step-registry, bdd-authoring]
 rules: [e2e-playwright]
 ---
 
@@ -18,8 +18,17 @@ Read the `playwright-bdd` and `step-registry` skills first, and follow `.cursor/
   - PR URL — `https://github.com/<org>/<repo>/pull/<n>` (highest confidence: file-level evidence)
   - Jira ticket — e.g. `DAV-165` (medium: resolved via linked PRs, falls back to text mode)
   - Text description — e.g. `"wishlist share flow"` (lowest: inferred, always confirmed)
+  - Plain-text test cases / business rules (case mode, step 0)
 - `--env <name>` — target environment from the repo's env config, default per `AGENTS.md`
 - `--base-url <url>` — point at a PR preview / ephemeral deployment instead of a named env
+
+**Empty input + no session context → ask what to verify.** Never guess a target from thin air.
+
+**Flag-machinery engagement:** engage flag/time control (step 0) iff the input mentions flags/toggles/campaigns OR the resolved changes touch flag-gated areas; otherwise plain verify (fixture is zero-overhead without framework tags — this only picks the runner).
+
+## 0. CASE MODE — plain-text rules → BDD → flag-verify runner
+
+Plain-text rules input: draft into Gherkin per the `bdd-authoring` skill, attaching framework tags (`@flags:k=v`, `@vars:k.var=v`, `@time:<ISO-8601>`, `@timeshift:<phase|self>` — contract there) where a case needs flag/time control. Write the feature to `.tmp/verify-cases/<slug>.feature` (disposable; never the journey pool), show it and wait for approval (text-derived gate). Defaults: env `nonprod` (repo `AGENTS.md` wins), locale `AU`; add `NZ` only when the input mentions NZ. Then run via the flag-verify delegation in step 4.
 
 ## 1. RESOLVE — input → changedAreas
 
@@ -73,7 +82,8 @@ list still resolve inline.
 
 ## 4. RUN
 
-- Invoke the repo runner alias from `AGENTS.md` with the tag expression and env (e.g. `./scripts/run-tests.sh -e <env> -t "<TAGS>"` — repo alias wins). `--base-url` overrides the env's baseUrl when given.
+- **Flag-verify delegation (case mode / framework-tagged runs):** if the repo provides a `verify:cases` script, delegate to it instead of the journey runner — `pnpm verify:cases --features .tmp/verify-cases/<slug>.feature --env nonprod --locale AU [--locale NZ]` (or `--tags '<expr>'` for pool scenarios). It triages/auto-adds generic steps, rewrites the datafile per scenario, controls time as tagged, verifies config against pinned expectations, and writes `reports/verdict.{json,md}` + `missing-steps.json`. The inline runner below is the spec of record when the script is absent.
+- Otherwise invoke the repo runner alias from `AGENTS.md` with the tag expression and env (e.g. `./scripts/run-tests.sh -e <env> -t "<TAGS>"` — repo alias wins). `--base-url` overrides the env's baseUrl when given.
 - Run once. Do not retry the suite hoping for green — a red result is data, not bad luck.
 
 ## 5. REPORT — three states
@@ -81,6 +91,7 @@ list still resolve inline.
 - 🟢 **PASS** — all selected scenarios green, gapList empty. One line per domain.
 - 🔴 **FAIL** — any failure. Classify each per the heal taxonomy: **product regression** / **test defect** / **environment**. State plainly: this command does not fix — hand the failure evidence to `/ko-e2e-heal`.
 - 🟡 **GAP** — selected scenarios green but gapList non-empty. For each gap: which tag, which apps/packages resolved to it, and the exact next step — offer to write `.tmp/handoff.json` for `/ko-e2e-test` with a suggested flow description, so coverage can be added in one step.
+- **Case-mode extras:** when the flag-verify runner ran, launch `pnpm verify:report` (UI over `reports/verdict.json`) and hand the user the URL. A non-empty `reports/missing-steps.json` means auto-added or blocked steps — feed it to the `/ko-e2e-test` GAP handoff to finalize definitions.
 
 End every report with: input, resolved areas, tag expression, scenario counts, env, duration, and the one-line verdict per domain.
 
