@@ -28,7 +28,7 @@ Read the `playwright-bdd` and `step-registry` skills first, and follow `.cursor/
 
 ## 0. CASE MODE — plain-text rules → BDD → flag-verify runner
 
-Plain-text rules input: draft into Gherkin per the `bdd-authoring` skill, attaching framework tags (`@flags:k=v`, `@time:<ISO-8601>`, `@timeshift:<phase>` — contract there) where a case needs flag/time control. Write the feature to `.tmp/verify-cases/<slug>.feature` (disposable; never the journey pool), show it and wait for approval (text-derived gate). Defaults: env `nonprod` (repo `AGENTS.md` wins), locale `AU`; add `NZ` only when the input mentions NZ. Then run via the flag-verify delegation in step 4.
+Plain-text rules input: draft into Gherkin per the `bdd-authoring` skill, attaching framework tags (`@flags:k=v`, `@vars:k.var=v`, `@time:<ISO-8601>`, `@timeshift:<phase|self>` — contract there) where a case needs flag/time control. Write the feature to `.tmp/verify-cases/<slug>.feature` (disposable; never the journey pool), show it and wait for approval (text-derived gate). Defaults: env `nonprod` (repo `AGENTS.md` wins), locale `AU`; add `NZ` only when the input mentions NZ. Then run via the flag-verify delegation in step 4.
 
 ## 1. RESOLVE — input → changedAreas
 
